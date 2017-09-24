@@ -1,6 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using System;
 using System.Collections.Generic;
 
 namespace TrafficSim
@@ -60,7 +61,7 @@ namespace TrafficSim
             Pixel = new Texture2D(GraphicsDevice, 1, 1);
             Pixel.SetData(new Color[] { Color.White });
 
-            cars.Add(new Car(Vector2.One*1000,1f,0.3f,Direction.North, 100f));
+            cars.Add(new Car(Vector2.One * 1000, 1f, 0.3f, Direction.North, 100f));
 
             // TODO: use this.Content to load your game content here
         }
@@ -84,7 +85,7 @@ namespace TrafficSim
             mouse = Mouse.GetState();
             keyboard = Keyboard.GetState();
 
-            if(keyboard.IsKeyDown(Keys.W))
+            if (keyboard.IsKeyDown(Keys.W))
             {
                 cars[0].Direction = Direction.North;
             }
@@ -100,21 +101,61 @@ namespace TrafficSim
             {
                 cars[0].Direction = Direction.West;
             }
-            else if(keyboard.IsKeyDown(Keys.Up) && oldKeyboard.IsKeyUp(Keys.Up))
+            else if (keyboard.IsKeyDown(Keys.Up) && oldKeyboard.IsKeyUp(Keys.Up))
             {
-                cars[0].TargetSpeed+= 10;
+                cars[0].TargetSpeed += 10;
             }
             else if (keyboard.IsKeyDown(Keys.Down) && oldKeyboard.IsKeyUp(Keys.Down))
             {
-                cars[0].TargetSpeed-= 10;
+                cars[0].TargetSpeed -= 10;
             }
-            if(mouse.LeftButton == ButtonState.Pressed && oldMouse.LeftButton == ButtonState.Released)
+            if (mouse.LeftButton == ButtonState.Pressed && oldMouse.LeftButton == ButtonState.Released)
             {
-                cars.Add(new Car(Vector2.One * 1000, 0.1f, 2f, Direction.North, 100f));
+                cars.Add(new Car(Vector2.One * 1000, 0.1f, 4f, Direction.East, 100f, 30f));
             }
 
             foreach (Car car in cars)
             {
+                LinkedList<Car> linked = new LinkedList<Car>(new Car[] { });
+
+                /*foreach(Car car2 in cars)
+                {
+                    float decelerationConst = 400f;
+                    float distBetween = 400f;
+
+
+                    if(car.Position == car2.Position)
+                    {
+                        break;
+                    }
+
+                    if(    (car2.Position.X == car.Position.X && car2.Position.Y - car.Position.Y <= distBetween && car2.Position.Y - car.Position.Y > 0 && car.Direction == car2.Direction && car.Direction == Direction.South))
+                    {
+                        car.TargetSpeed -= decelerationConst / (car2.Position.Y - car.Position.Y);
+                    }
+                    if ((car2.Position.X == car.Position.X && car.Position.Y - car2.Position.Y <= distBetween && car.Position.Y - car2.Position.Y > 0 && car.Direction == car2.Direction && car.Direction == Direction.North))
+                    {
+                        car.TargetSpeed -= decelerationConst / (car.Position.Y - car2.Position.Y);
+                    }
+                    if ((car2.Position.Y == car.Position.Y && car2.Position.X - car.Position.X <= distBetween && car2.Position.X - car.Position.X > 0 && car.Direction == car2.Direction && car.Direction == Direction.West))
+                    {
+                        car.TargetSpeed -= decelerationConst / (car2.Position.X - car.Position.X);
+                    }
+                    if ((car2.Position.Y == car.Position.Y && car.Position.X - car2.Position.X <= distBetween && car.Position.X - car2.Position.X > 0 && car.Direction == car2.Direction && car.Direction == Direction.East))
+                    {
+                        car.TargetSpeed -= decelerationConst / (car.Position.X - car2.Position.X);
+                    }
+                    //    || (car2.Position.X == car.Position.X && car.Position.Y - car2.Position.Y >= -200 && car.Direction == car2.Direction && car.Direction == Direction.North)
+                    //    || (car2.Position.Y == car.Position.Y && car.Position.X - car2.Position.X >= -200 && car.Direction == car2.Direction && car.Direction == Direction.West)
+                    //    || (car2.Position.Y == car.Position.Y && car2.Position.X - car.Position.X >= -200 && car.Direction == car2.Direction && car.Direction == Direction.East))
+                    //{
+                    //    car.TargetSpeed--;
+                    //}
+                    ////else
+                    ////{
+                    ////    car.TargetSpeed *= 1.0001f;
+                    ////}
+                }*/
                 car.Update();
             }
 
@@ -135,12 +176,13 @@ namespace TrafficSim
 
             spriteBatch.Begin();
 
-            foreach(Car car in cars)
+            foreach (Car car in cars)
             {
-                spriteBatch.Draw(Pixel, new Rectangle((int)(car.Position.X*scalar), (int)(car.Position.Y*scalar), (int)((((int)car.Direction % 2 + 1)) * 50*scalar), (int)(((((int)car.Direction + 1) % 2 + 1)) * 50*scalar)), Color.Red);
+                spriteBatch.Draw(Pixel, new Rectangle((int)(car.Position.X * scalar), (int)(car.Position.Y * scalar), (int)((((int)car.Direction % 2 + 1)) * 50 * scalar), (int)(((((int)car.Direction + 1) % 2 + 1)) * 50 * scalar)), Color.Red);
             }
 
-            
+
+
 
             spriteBatch.End();
             base.Draw(gameTime);
