@@ -23,6 +23,12 @@ namespace TrafficSim
 
         List<Car> cars = new List<Car>();
 
+        List<Street> streets = new List<Street>();
+
+        float scalar = 0.1f;
+
+        Street s;
+
         public static Texture2D Pixel;
 
         public Game1()
@@ -62,6 +68,12 @@ namespace TrafficSim
             Pixel.SetData(new Color[] { Color.White });
 
             cars.Add(new Car(Vector2.One * 1000, 1f, 0.3f, Direction.North, 100f));
+
+            s = new Street(Direction.East, 1000);
+            s.Cars = new LinkedList<Car>(cars);
+
+            streets.Add(s);
+            streets.Add(new Street(Direction.West, 1500));
 
             // TODO: use this.Content to load your game content here
         }
@@ -111,52 +123,39 @@ namespace TrafficSim
             }
             if (mouse.LeftButton == ButtonState.Pressed && oldMouse.LeftButton == ButtonState.Released)
             {
-                cars.Add(new Car(Vector2.One * 1000, 0.1f, 4f, Direction.East, 100f, 30f));
+                streets[0].Cars.AddFirst(new Car(Vector2.One * 1000, 0.01f, 0.2f, Direction.East, 50f, 30f, 800));
+            }
+            if (mouse.RightButton == ButtonState.Pressed && oldMouse.RightButton == ButtonState.Released)
+            {
+                streets[1].Cars.AddFirst(new Car(new Vector2(15000,1500), 0.01f, 0.2f, Direction.West, 50f, 30f, 800));
             }
 
-            foreach (Car car in cars)
+            scalar = mouse.ScrollWheelValue * 0.0001f + 0.1f;
+
+            foreach (Street street in streets)
             {
-                LinkedList<Car> linked = new LinkedList<Car>(new Car[] { });
-
-                /*foreach(Car car2 in cars)
+                foreach (Car car in street.Cars)
                 {
-                    float decelerationConst = 400f;
-                    float distBetween = 400f;
+                    //Car follows lane
+                    car.Direction = street.Direction;
 
 
-                    if(car.Position == car2.Position)
+                    //Brake if cars are ahead
+                    if (street.Cars.Find(car).Next != null)
                     {
-                        break;
+                        float distance = car.Position.X - street.Cars.Find(car).Next.Value.Position.X + (car.Position.Y - street.Cars.Find(car).Next.Value.Position.Y);
+                        distance = Math.Abs(distance);
+                        if (distance < car.BrakingDistance)
+                        {
+                            car.TargetSpeed = Math.Max(0f, car.TargetSpeed * distance/car.BrakingDistance);
+                        }
+                        else
+                        {
+                            car.TargetSpeed = car.MaxSpeed;
+                        }
                     }
-
-                    if(    (car2.Position.X == car.Position.X && car2.Position.Y - car.Position.Y <= distBetween && car2.Position.Y - car.Position.Y > 0 && car.Direction == car2.Direction && car.Direction == Direction.South))
-                    {
-                        car.TargetSpeed -= decelerationConst / (car2.Position.Y - car.Position.Y);
-                    }
-                    if ((car2.Position.X == car.Position.X && car.Position.Y - car2.Position.Y <= distBetween && car.Position.Y - car2.Position.Y > 0 && car.Direction == car2.Direction && car.Direction == Direction.North))
-                    {
-                        car.TargetSpeed -= decelerationConst / (car.Position.Y - car2.Position.Y);
-                    }
-                    if ((car2.Position.Y == car.Position.Y && car2.Position.X - car.Position.X <= distBetween && car2.Position.X - car.Position.X > 0 && car.Direction == car2.Direction && car.Direction == Direction.West))
-                    {
-                        car.TargetSpeed -= decelerationConst / (car2.Position.X - car.Position.X);
-                    }
-                    if ((car2.Position.Y == car.Position.Y && car.Position.X - car2.Position.X <= distBetween && car.Position.X - car2.Position.X > 0 && car.Direction == car2.Direction && car.Direction == Direction.East))
-                    {
-                        car.TargetSpeed -= decelerationConst / (car.Position.X - car2.Position.X);
-                    }
-                    //    || (car2.Position.X == car.Position.X && car.Position.Y - car2.Position.Y >= -200 && car.Direction == car2.Direction && car.Direction == Direction.North)
-                    //    || (car2.Position.Y == car.Position.Y && car.Position.X - car2.Position.X >= -200 && car.Direction == car2.Direction && car.Direction == Direction.West)
-                    //    || (car2.Position.Y == car.Position.Y && car2.Position.X - car.Position.X >= -200 && car.Direction == car2.Direction && car.Direction == Direction.East))
-                    //{
-                    //    car.TargetSpeed--;
-                    //}
-                    ////else
-                    ////{
-                    ////    car.TargetSpeed *= 1.0001f;
-                    ////}
-                }*/
-                car.Update();
+                    car.Update();
+                }
             }
 
 
@@ -171,14 +170,17 @@ namespace TrafficSim
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Draw(GameTime gameTime)
         {
-            float scalar = 0.1f;
+            
             GraphicsDevice.Clear(Color.CornflowerBlue);
 
             spriteBatch.Begin();
 
-            foreach (Car car in cars)
+            foreach (Street street in streets)
             {
-                spriteBatch.Draw(Pixel, new Rectangle((int)(car.Position.X * scalar), (int)(car.Position.Y * scalar), (int)((((int)car.Direction % 2 + 1)) * 50 * scalar), (int)(((((int)car.Direction + 1) % 2 + 1)) * 50 * scalar)), Color.Red);
+                foreach (Car car in street.Cars)
+                {
+                    spriteBatch.Draw(Pixel, new Rectangle((int)(car.Position.X * scalar), (int)(car.Position.Y * scalar), (int)((((int)car.Direction % 2 + 1)) * 50 * scalar), (int)(((((int)car.Direction + 1) % 2 + 1)) * 50 * scalar)), Color.Red);
+                }
             }
 
 

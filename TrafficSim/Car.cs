@@ -25,12 +25,10 @@ namespace TrafficSim
 
         public float Deceleration { get; set; }
 
-        public TimeSpan ReactionTime { get; set; }
-
-        private TimeSpan defaultSpan = TimeSpan.FromSeconds(0.3f);
+        public float BrakingDistance { get; set; }
 
 
-        public Car(Vector2 position, float acceleration, float deceleration, Direction dir, float maxSpeed, float targetSpeed = 0f)
+        public Car(Vector2 position, float acceleration, float deceleration, Direction dir, float maxSpeed, float targetSpeed = 0f, float brakingDist = 500f)
         {
             Position = position;
             Acceleration = acceleration;
@@ -38,18 +36,7 @@ namespace TrafficSim
             Direction = dir;
             MaxSpeed = maxSpeed;
             TargetSpeed = targetSpeed;
-            ReactionTime = defaultSpan;
-        }
-
-        public Car(Vector2 position, float acceleration, float deceleration, Direction dir, float maxSpeed, float targetSpeed, TimeSpan reactionTime)
-        {
-            Position = position;
-            Acceleration = acceleration;
-            Deceleration = deceleration;
-            Direction = dir;
-            MaxSpeed = maxSpeed;
-            TargetSpeed = targetSpeed;
-            ReactionTime = reactionTime;
+            BrakingDistance = brakingDist;
         }
 
 
@@ -62,10 +49,12 @@ namespace TrafficSim
             if(TargetSpeed > speed)
             {
                 Speed += Acceleration * (TargetSpeed-Speed);
+                Speed = Math.Min(speed, TargetSpeed);
             }
             else if(TargetSpeed < speed)
             {
                 Speed -= Deceleration * (Speed - TargetSpeed);
+                Speed = Math.Max(speed, TargetSpeed);
             }
             if((TargetSpeed - speed)*(TargetSpeed-speed) < 4)
             {
