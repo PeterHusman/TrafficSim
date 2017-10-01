@@ -27,8 +27,10 @@ namespace TrafficSim
 
         public float BrakingDistance { get; set; }
 
+        public float IntersectionBrakingDistance { get; set; }
 
-        public Car(Vector2 position, float acceleration, float deceleration, Direction dir, float maxSpeed, float targetSpeed = 0f, float brakingDist = 500f)
+
+        public Car(Vector2 position, float acceleration, float deceleration, Direction dir, float maxSpeed, float targetSpeed = 0f, float brakingDist = 500f, float interBrakingDist = 800f)
         {
             Position = position;
             Acceleration = acceleration;
@@ -37,6 +39,7 @@ namespace TrafficSim
             MaxSpeed = maxSpeed;
             TargetSpeed = targetSpeed;
             BrakingDistance = brakingDist;
+            IntersectionBrakingDistance = interBrakingDist;
         }
 
 

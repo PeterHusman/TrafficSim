@@ -14,6 +14,7 @@ namespace TrafficSim
         GraphicsDeviceManager graphics;
         SpriteBatch spriteBatch;
 
+        Random rand;
 
         MouseState mouse;
         MouseState oldMouse;
@@ -25,9 +26,11 @@ namespace TrafficSim
 
         List<Street> streets = new List<Street>();
 
-        float scalar = 0.1f;
+        List<Intersection> intersections = new List<Intersection>();
 
-        Street s;
+        bool efficientIntersections = false;
+
+        float scalar = 0.1f;
 
         public static Texture2D Pixel;
 
@@ -58,6 +61,8 @@ namespace TrafficSim
         {
             IsMouseVisible = true;
 
+            rand = new Random();
+
             graphics.PreferredBackBufferHeight = 1080;
             graphics.PreferredBackBufferWidth = 1920;
             graphics.ApplyChanges();
@@ -68,12 +73,15 @@ namespace TrafficSim
             Pixel.SetData(new Color[] { Color.White });
 
             cars.Add(new Car(Vector2.One * 1000, 1f, 0.3f, Direction.North, 100f));
-
+            Street s;
             s = new Street(Direction.East, 1000);
             s.Cars = new LinkedList<Car>(cars);
 
             streets.Add(s);
             streets.Add(new Street(Direction.West, 1500));
+            streets.Add(new Street(Direction.South, 1500));
+            streets.Add(new Street(Direction.North, 1000));
+            intersections.Add(new Intersection(new TimeSpan(0,0,5), new Vector2(1250,1250),IntersectionDirection.NorthSouth,new Street[] { streets[0],streets[1],streets[2],streets[3] }));
 
             // TODO: use this.Content to load your game content here
         }
@@ -96,24 +104,7 @@ namespace TrafficSim
         {
             mouse = Mouse.GetState();
             keyboard = Keyboard.GetState();
-
-            if (keyboard.IsKeyDown(Keys.W))
-            {
-                cars[0].Direction = Direction.North;
-            }
-            else if (keyboard.IsKeyDown(Keys.D))
-            {
-                cars[0].Direction = Direction.East;
-            }
-            else if (keyboard.IsKeyDown(Keys.S))
-            {
-                cars[0].Direction = Direction.South;
-            }
-            else if (keyboard.IsKeyDown(Keys.A))
-            {
-                cars[0].Direction = Direction.West;
-            }
-            else if (keyboard.IsKeyDown(Keys.Up) && oldKeyboard.IsKeyUp(Keys.Up))
+            if (keyboard.IsKeyDown(Keys.Up) && oldKeyboard.IsKeyUp(Keys.Up))
             {
                 cars[0].TargetSpeed += 10;
             }
@@ -127,7 +118,7 @@ namespace TrafficSim
             }
             if (mouse.RightButton == ButtonState.Pressed && oldMouse.RightButton == ButtonState.Released)
             {
-                streets[1].Cars.AddFirst(new Car(new Vector2(15000,1500), 0.01f, 0.2f, Direction.West, 50f, 30f, 800));
+                streets[1].Cars.AddFirst(new Car(new Vector2(15000,1500), 0.01f, 0.2f, Direction.West, 50f, 30f, 800, 1300));
             }
 
             scalar = mouse.ScrollWheelValue * 0.0001f + 0.1f;
@@ -139,23 +130,59 @@ namespace TrafficSim
                     //Car follows lane
                     car.Direction = street.Direction;
 
+                    bool carFirst = street.Cars.Find(car).Next == null;
 
+                    bool carInSlowDownRange = false;
                     //Brake if cars are ahead
-                    if (street.Cars.Find(car).Next != null)
+                    if (!carFirst)
                     {
-                        float distance = car.Position.X - street.Cars.Find(car).Next.Value.Position.X + (car.Position.Y - street.Cars.Find(car).Next.Value.Position.Y);
-                        distance = Math.Abs(distance);
+                        float distance = (float)Math.Sqrt((car.Position.X - street.Cars.Find(car).Next.Value.Position.X)* (car.Position.X - street.Cars.Find(car).Next.Value.Position.X) + (car.Position.Y - street.Cars.Find(car).Next.Value.Position.Y)* (car.Position.Y - street.Cars.Find(car).Next.Value.Position.Y));
                         if (distance < car.BrakingDistance)
                         {
                             car.TargetSpeed = Math.Max(0f, car.TargetSpeed * distance/car.BrakingDistance);
+                            carInSlowDownRange = true;
                         }
                         else
                         {
                             car.TargetSpeed = car.MaxSpeed;
+                            carInSlowDownRange = false;
                         }
                     }
+
+                    foreach(Intersection inter in intersections)
+                    {
+                        float distance = (float)Math.Sqrt((car.Position.X - inter.Position.X) * (car.Position.X - inter.Position.X) + (car.Position.Y - inter.Position.Y) * (car.Position.Y - inter.Position.Y));
+
+                        if(distance - 354 < car.IntersectionBrakingDistance && (int)car.Direction % 2 != (int)inter.Direction)
+                        {
+                            car.TargetSpeed = Math.Min(Math.Max(0f, car.TargetSpeed * (distance - 354) / car.IntersectionBrakingDistance),car.TargetSpeed);
+                        }
+                        else if (carFirst)
+                        {
+                            car.TargetSpeed = car.MaxSpeed;
+                        }
+                        //else if(efficientIntersections && distance <= car.IntersectionBrakingDistance)
+                        //{
+                        //    car.TargetSpeed = car.MaxSpeed;
+                        //}
+
+                        if (distance < 300 && (int)car.Direction % 2 == (int)inter.Direction)
+                        {
+                            //Make car move to random street
+                            //TODO: Get last car to pass intersection for each street
+                            inter.Streets[rand.Next(0, inter.Streets.Length)].Cars.AddAfter();
+
+                        }
+
+                    }
+
                     car.Update();
                 }
+            }
+
+           foreach(Intersection inter in intersections)
+            {
+                inter.Update(gameTime.ElapsedGameTime);
             }
 
 

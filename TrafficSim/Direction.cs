@@ -13,4 +13,10 @@ namespace TrafficSim
         South = 2,
         West = 3
     }
+
+    public enum IntersectionDirection
+    {
+        NorthSouth = 0,
+        EastWest = 1
+    }
 }
