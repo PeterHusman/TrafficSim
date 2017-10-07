@@ -125,7 +125,8 @@ namespace TrafficSim
 
             foreach (Street street in streets)
             {
-                foreach (Car car in street.Cars)
+                LinkedList<Car> cars = new LinkedList<Car>(street.Cars);
+                foreach (Car car in cars)
                 {
                     //Car follows lane
                     car.Direction = street.Direction;
@@ -151,11 +152,11 @@ namespace TrafficSim
 
                     foreach(Intersection inter in intersections)
                     {
-                        float distance = (float)Math.Sqrt((car.Position.X - inter.Position.X) * (car.Position.X - inter.Position.X) + (car.Position.Y - inter.Position.Y) * (car.Position.Y - inter.Position.Y));
+                        float distance = car.Direction == Direction.West ? (car.Position.X - inter.Position.X) : (car.Direction == Direction.East ? (inter.Position.X - car.Position.X) : (car.Direction == Direction.South ? (car.Position.Y - inter.Position.Y) : (car.Direction == Direction.North ? (inter.Position.Y - car.Position.Y) : 0)));
 
-                        if(distance - 354 < car.IntersectionBrakingDistance && (int)car.Direction % 2 != (int)inter.Direction)
+                        if(distance < car.IntersectionBrakingDistance && (int)car.Direction % 2 != (int)inter.Direction && distance > 0)
                         {
-                            car.TargetSpeed = Math.Min(Math.Max(0f, car.TargetSpeed * (distance - 354) / car.IntersectionBrakingDistance),car.TargetSpeed);
+                            car.TargetSpeed = Math.Min(Math.Max(0f, car.TargetSpeed * (distance) / car.IntersectionBrakingDistance),car.TargetSpeed);
                         }
                         else if (carFirst)
                         {
@@ -166,11 +167,20 @@ namespace TrafficSim
                         //    car.TargetSpeed = car.MaxSpeed;
                         //}
 
-                        if (distance < 300 && (int)car.Direction % 2 == (int)inter.Direction)
+                        if (distance < 300 && (int)car.Direction % 2 == (int)inter.Direction && distance > 0)
                         {
                             //Make car move to random street
-                            //TODO: Get last car to pass intersection for each street
-                            inter.Streets[rand.Next(0, inter.Streets.Length)].Cars.AddAfter();
+                            //TODO: Make cars not do this on loops
+                            int selection = rand.Next(0, inter.Streets.Length);
+                            if (inter.LastCarsToPass[inter.Streets[selection]] != null && inter.Streets[selection].Cars.Contains(inter.LastCarsToPass[inter.Streets[selection]]))
+                            {
+                                inter.Streets[selection].Cars.AddAfter(inter.Streets[selection].Cars.Find(inter.LastCarsToPass[inter.Streets[selection]]), car);
+                            }
+                            else
+                            {
+                                inter.Streets[selection].Cars.AddLast(car);
+                            }
+                            street.Cars.Remove(car);
 
                         }
 
@@ -202,15 +212,21 @@ namespace TrafficSim
 
             spriteBatch.Begin();
 
+            foreach(Street street in streets)
+            {
+                spriteBatch.Draw(Pixel, new Rectangle(((int)street.Direction % 2) * street.Pos, (((int)street.Direction + 1) % 2) * street.Pos, ), Color.Black);
+            }
+
             foreach (Street street in streets)
             {
+                
                 foreach (Car car in street.Cars)
                 {
                     spriteBatch.Draw(Pixel, new Rectangle((int)(car.Position.X * scalar), (int)(car.Position.Y * scalar), (int)((((int)car.Direction % 2 + 1)) * 50 * scalar), (int)(((((int)car.Direction + 1) % 2 + 1)) * 50 * scalar)), Color.Red);
                 }
             }
 
-
+            
 
 
             spriteBatch.End();

@@ -15,6 +15,8 @@ namespace TrafficSim
 
         public Street[] Streets { get; set; }
 
+        public Dictionary<Street, Car> LastCarsToPass { get; private set; }
+
         public TimeSpan WaitTime { get; set; }
 
         private TimeSpan timePassed;
@@ -26,6 +28,11 @@ namespace TrafficSim
             Direction = direction;
             timePassed = new TimeSpan(0);
             Streets = streets;
+            LastCarsToPass = new Dictionary<Street, Car>();
+            foreach(Street s in Streets)
+            {
+                LastCarsToPass.Add(s, null);
+            }
         }
 
         public void Update(TimeSpan elapsedTime)
@@ -36,6 +43,26 @@ namespace TrafficSim
                 timePassed = new TimeSpan(0);
 
                 Direction = (IntersectionDirection)((int)Direction * -1 + 1);
+            }
+            foreach(Street s in Streets)
+            {
+                foreach(Car c in s.Cars)
+                {
+                    if(s.Direction == TrafficSim.Direction.North || s.Direction == TrafficSim.Direction.South)
+                    {
+                        if(Math.Abs(c.Position.Y - Position.Y) < c.Speed)
+                        {
+                            LastCarsToPass[s] = c;
+                        }
+                    }
+                    else
+                    {
+                        if (Math.Abs(c.Position.X - Position.X) < c.Speed)
+                        {
+                            LastCarsToPass[s] = c;
+                        }
+                    }
+                }
             }
         }
     }
