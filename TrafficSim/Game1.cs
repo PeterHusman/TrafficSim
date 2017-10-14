@@ -77,11 +77,37 @@ namespace TrafficSim
             s = new Street(Direction.East, 1000);
             s.Cars = new LinkedList<Car>(cars);
 
-            streets.Add(s);
-            streets.Add(new Street(Direction.West, 1500));
-            streets.Add(new Street(Direction.South, 1500));
-            streets.Add(new Street(Direction.North, 1000));
-            intersections.Add(new Intersection(new TimeSpan(0,0,5), new Vector2(1250,1250),IntersectionDirection.NorthSouth,new Street[] { streets[0],streets[1],streets[2],streets[3] }));
+            //streets.Add(s);
+            //streets.Add(new Street(Direction.West, 1500));
+            //streets.Add(new Street(Direction.South, 1500));
+            //streets.Add(new Street(Direction.North, 1000));
+            //intersections.Add(new Intersection(new TimeSpan(0,0,5), new Vector2(1250,1250),IntersectionDirection.NorthSouth,new Street[] { streets[0],streets[1],streets[2],streets[3] }));
+            int width = 5;
+            List<Street> vertStreets = new List<Street>();
+            List<Street> horizStreets = new List<Street>();
+
+            for (int x = 0; x < width; x++)
+            {
+                Street y1 = new Street(Direction.North, x * 2000);
+                Street y2 = new Street(Direction.South, x * 2000 + 500);
+                vertStreets.Add(y1);
+                vertStreets.Add(y2);
+                Street x1 = new Street(Direction.East, x * 2000);
+                Street x2 = new Street(Direction.West, x * 2000 + 500);
+                horizStreets.Add(x1);
+                horizStreets.Add(x2);
+            }
+            for(int x = 0; x < width *2; x += 2)
+            {
+                for(int y = 0; y < width*2; y += 2)
+                {
+                    intersections.Add(new Intersection(new TimeSpan(0, 0, 5), new Vector2(vertStreets[y].Pos + 250, horizStreets[x].Pos + 250), IntersectionDirection.NorthSouth, new Street[] { horizStreets[x], horizStreets[x + 1], vertStreets[y], vertStreets[y + 1] }));
+                }
+            }
+
+            streets.AddRange(vertStreets);
+            streets.AddRange(horizStreets);
+
 
             // TODO: use this.Content to load your game content here
         }
@@ -114,11 +140,12 @@ namespace TrafficSim
             }
             if (mouse.LeftButton == ButtonState.Pressed && oldMouse.LeftButton == ButtonState.Released)
             {
-                streets[0].Cars.AddFirst(new Car(new Vector2(500,1000), 0.01f, 0.2f, Direction.East, 50f, 30f, 800));
+                streets[rand.Next(0, streets.Count)].Cars.AddFirst(new Car(Vector2.Zero, 0.01f, 0.2f, Direction.East, 30f, 30f, 800, 1300));
+             //   streets[0].Cars.AddFirst(new Car(new Vector2(500,1000), 0.01f, 0.2f, Direction.East, 50f, 30f, 800));
             }
             if (mouse.RightButton == ButtonState.Pressed && oldMouse.RightButton == ButtonState.Released)
             {
-                streets[1].Cars.AddFirst(new Car(new Vector2(15000,1500), 0.01f, 0.2f, Direction.West, 50f, 30f, 800, 1300));
+             //   streets[1].Cars.AddFirst(new Car(new Vector2(15000,1500), 0.01f, 0.2f, Direction.West, 50f, 30f, 800, 1300));
             }
 
             scalar = mouse.ScrollWheelValue * 0.0001f + 0.1f;
@@ -156,6 +183,12 @@ namespace TrafficSim
                         {
                             car.TargetSpeed = car.MaxSpeed;
                             carInSlowDownRange = false;
+                        }
+
+                        if(distance < 150)
+                        {
+                            car.Acceleration = 0;
+                            car.Speed = 0;
                         }
                     }
 
@@ -236,7 +269,7 @@ namespace TrafficSim
 
             foreach(Street street in streets)
             {
-                spriteBatch.Draw(Pixel, new Rectangle(((int)street.Direction % 2) * (int)(street.Pos * scalar), (((int)street.Direction + 1) % 2) * (int)(street.Pos*scalar), (int)(((((int)street.Direction+1) % 2)*1000000 + 50)*scalar), (int)(((((int)street.Direction) % 2) * 1000000 + 50) * scalar)), Color.Black);
+                spriteBatch.Draw(Pixel, new Rectangle((((int)street.Direction + 1) % 2) * (int)(street.Pos * scalar), (((int)street.Direction) % 2) * (int)(street.Pos*scalar), (int)(((((int)street.Direction) % 2)*1000000 + 50)*scalar), (int)(((((int)street.Direction + 1) % 2) * 1000000 + 50) * scalar)), Color.Black);
             }
 
             foreach (Street street in streets)
@@ -248,7 +281,10 @@ namespace TrafficSim
                 }
             }
 
-            
+            foreach(Intersection inter in intersections)
+            {
+                spriteBatch.Draw(Pixel, new Rectangle((inter.Position.X * scalar).ToInt(), (inter.Position.Y*scalar).ToInt(), 5, 5), Color.Red);
+            }
 
 
             spriteBatch.End();
