@@ -72,10 +72,10 @@ namespace TrafficSim
             Pixel = new Texture2D(GraphicsDevice, 1, 1);
             Pixel.SetData(new Color[] { Color.White });
 
-            cars.Add(new Car(Vector2.One * 1000, 1f, 0.3f, Direction.North, 100f));
-            Street s;
-            s = new Street(Direction.East, 1000);
-            s.Cars = new LinkedList<Car>(cars);
+            //cars.Add(new Car(Vector2.One * 1000, 1f, 0.3f, Direction.North, 100f));
+            //Street s;
+            //s = new Street(Direction.East, 1000);
+            //s.Cars = new LinkedList<Car>(cars);
 
             //streets.Add(s);
             //streets.Add(new Street(Direction.West, 1500));
@@ -131,12 +131,15 @@ namespace TrafficSim
             mouse = Mouse.GetState();
             keyboard = Keyboard.GetState();
             if (keyboard.IsKeyDown(Keys.Up) && oldKeyboard.IsKeyUp(Keys.Up))
-            {
-                cars[0].TargetSpeed += 10;
+            { 
+
             }
-            else if (keyboard.IsKeyDown(Keys.Down) && oldKeyboard.IsKeyUp(Keys.Down))
+            else if (keyboard.IsKeyDown(Keys.Space) && oldKeyboard.IsKeyUp(Keys.Space))
             {
-                cars[0].TargetSpeed -= 10;
+              foreach(Street s in streets)
+                {
+                    s.Cars.AddFirst(new Car(Vector2.Zero, 0.01f, 0.2f, Direction.East, 30f, 30f, 400, 600));
+                }
             }
             if (mouse.LeftButton == ButtonState.Pressed && oldMouse.LeftButton == ButtonState.Released)
             {
@@ -189,7 +192,10 @@ namespace TrafficSim
                         {
                             car.Acceleration = 0;
                             car.Speed = 0;
-                        }
+                            
+                            street.Cars.Find(car).Next.Value.Acceleration = 0;
+                            street.Cars.Find(car).Next.Value.Speed = 0;
+                        }   
                     }
 
                     foreach(Intersection inter in intersections)
@@ -200,7 +206,7 @@ namespace TrafficSim
                         {
                             car.TargetSpeed = Math.Min(Math.Max(0f, car.TargetSpeed * (distance - 100) / car.IntersectionBrakingDistance),car.TargetSpeed);
                         }
-                        else if (carFirst)
+                        else if (carFirst && (int)car.Direction % 2 == (int)inter.Direction)
                         {
                             car.TargetSpeed = car.MaxSpeed;
                         }
@@ -215,8 +221,8 @@ namespace TrafficSim
                             int selection = rand.Next(0, inter.Streets.Length);
                             if (inter.LastCarsToPass[inter.Streets[selection]] != null && inter.Streets[selection].Cars.Contains(inter.LastCarsToPass[inter.Streets[selection]]))
                             {
-                                inter.Streets[selection].Cars.AddAfter(inter.Streets[selection].Cars.Find(inter.LastCarsToPass[inter.Streets[selection]]), car);
-                            }
+                                inter.Streets[selection].Cars.AddBefore(inter.Streets[selection].Cars.Find(inter.LastCarsToPass[inter.Streets[selection]]), car);
+                            }//Teleportation: WHY?!?!?!?!?
                             else
                             {
                                 inter.Streets[selection].Cars.AddLast(car);
@@ -228,7 +234,7 @@ namespace TrafficSim
                             car.Speed = car.MaxSpeed;
                             car.TargetSpeed = car.MaxSpeed;
                             car.Update();
-
+                            car.Update();
                             //distance = car.Direction == Direction.West ? (car.Position.X - inter.Position.X) : (car.Direction == Direction.East ? (inter.Position.X - car.Position.X) : (car.Direction == Direction.South ? (car.Position.Y - inter.Position.Y) : (car.Direction == Direction.North ? (inter.Position.Y - car.Position.Y) : 0)));
 
                             //float jumpDist = 400;
@@ -262,8 +268,8 @@ namespace TrafficSim
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Draw(GameTime gameTime)
         {
-            
-            GraphicsDevice.Clear(Color.CornflowerBlue);
+            Color clearColor = intersections[0].Direction == IntersectionDirection.NorthSouth ? Color.Green : Color.CornflowerBlue;
+            GraphicsDevice.Clear(clearColor);
 
             spriteBatch.Begin();
 
@@ -277,7 +283,8 @@ namespace TrafficSim
                 
                 foreach (Car car in street.Cars)
                 {
-                    spriteBatch.Draw(Pixel, new Rectangle((int)(car.Position.X * scalar), (int)(car.Position.Y * scalar), (int)((((int)car.Direction % 2 + 1)) * 50 * scalar), (int)(((((int)car.Direction + 1) % 2 + 1)) * 50 * scalar)), Color.Red);
+                    Color color = car.Acceleration > 0 ? Color.White : Color.Red;
+                    spriteBatch.Draw(Pixel, new Rectangle((int)(car.Position.X * scalar), (int)(car.Position.Y * scalar), (int)((((int)car.Direction % 2 + 1)) * 50 * scalar), (int)(((((int)car.Direction + 1) % 2 + 1)) * 50 * scalar)), color);
                 }
             }
 

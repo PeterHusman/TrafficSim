@@ -50,14 +50,14 @@ namespace TrafficSim
                 {
                     if(s.Direction == TrafficSim.Direction.North || s.Direction == TrafficSim.Direction.South)
                     {
-                        if(Math.Abs(c.Position.Y - Position.Y) < c.Speed)
+                        if(Math.Abs(c.Position.Y - Position.Y) <= c.Speed)
                         {
                             LastCarsToPass[s] = c;
                         }
                     }
                     else
                     {
-                        if (Math.Abs(c.Position.X - Position.X) < c.Speed)
+                        if (Math.Abs(c.Position.X - Position.X) <= c.Speed)
                         {
                             LastCarsToPass[s] = c;
                         }
