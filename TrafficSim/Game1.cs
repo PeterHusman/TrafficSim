@@ -151,6 +151,27 @@ namespace TrafficSim
              //   streets[1].Cars.AddFirst(new Car(new Vector2(15000,1500), 0.01f, 0.2f, Direction.West, 50f, 30f, 800, 1300));
             }
 
+            if (keyboard.IsKeyDown(Keys.R))
+            {
+                foreach (Street s in streets)
+                {
+                    if (s.Pos % 100 != 0)
+                    {
+                        s.Pos = (int)s.Pos / 100;
+
+                        s.Pos *= 100;
+                    }
+                }
+            }
+            if(keyboard.IsKeyDown(Keys.V) && oldKeyboard.IsKeyUp(Keys.V))
+            {
+                Intersection inter = intersections[rand.Next(0, intersections.Count)];
+                foreach(Street s in inter.Streets)
+                {
+                    s.Pos++;
+                }
+            }
+
             scalar = mouse.ScrollWheelValue * 0.0001f + 0.1f;
 
             foreach (Street street in streets)
@@ -219,17 +240,36 @@ namespace TrafficSim
                         {
                             //Make car move to random street
                             int selection = rand.Next(0, inter.Streets.Length);
-                            if (inter.LastCarsToPass[inter.Streets[selection]] != null && inter.Streets[selection].Cars.Contains(inter.LastCarsToPass[inter.Streets[selection]]))
+                            Street selected = inter.Streets[selection];
+                            if (inter.LastCarsToPass[selected] != null && selected.Cars.Contains(inter.LastCarsToPass[selected]))
                             {
-                                inter.Streets[selection].Cars.AddBefore(inter.Streets[selection].Cars.Find(inter.LastCarsToPass[inter.Streets[selection]]), car);
-                            }//Teleportation: WHY?!?!?!?!?
+                                selected.Cars.AddBefore(selected.Cars.Find(inter.LastCarsToPass[selected]), car);
+                            }
+                            //Teleportation: WHY?!?!?!?!?
+                            //(Not sure) Cars only teleport when making U-turn or straight turn, don't always tp
+                            //Cars come out w/ same: NS - Y pos, EW - X pos as they went in with
+                            //Do cars come out of the same intersection, despite a weird street?
+                            //Is it just graphical?
+                            //When a car makes a turn, both streets involved go orange until you press R.
+                            //A random intersection and its streets can be turned orange w/ V.
                             else
                             {
-                                inter.Streets[selection].Cars.AddLast(car);
+                                selected.Cars.AddLast(car);
                             }
+                            inter.Streets[selection].Pos++;
+                            street.Pos++;
                             street.Cars.Remove(car);
 
-                            car.Direction = inter.Streets[selection].Direction;
+                            car.Direction = selected.Direction;
+
+                            if ((int)selected.Direction % 2 == 0)
+                            {
+                                car.Position = new Vector2(selected.Pos, car.Position.Y);
+                            }
+                            else
+                            {
+                                car.Position = new Vector2(car.Position.X, selected.Pos);
+                            }
 
                             car.Speed = car.MaxSpeed;
                             car.TargetSpeed = car.MaxSpeed;
@@ -239,7 +279,7 @@ namespace TrafficSim
 
                             //float jumpDist = 400;
 
-                            //car.Position = new Vector2(car.Position.X + (car.Direction == Direction.East ? (jumpDist-distance) : (car.Direction == Direction.West ? -(jumpDist-distance) : 0)), car.Position.Y + (car.Direction == Direction.North ? -(jumpDist-distance) : (car.Direction == Direction.South ? (jumpDist-distance) : 0)));
+                            //car.Position = new Vector2(car.Position.X + (car.Direction == Direction.East ? (jumpDist - distance) : (car.Direction == Direction.West ? -(jumpDist - distance) : 0)), car.Position.Y + (car.Direction == Direction.North ? -(jumpDist - distance) : (car.Direction == Direction.South ? (jumpDist - distance) : 0)));
 
                             //car.TargetSpeed = car.MaxSpeed;
 
@@ -275,7 +315,8 @@ namespace TrafficSim
 
             foreach(Street street in streets)
             {
-                spriteBatch.Draw(Pixel, new Rectangle((((int)street.Direction + 1) % 2) * (int)(street.Pos * scalar), (((int)street.Direction) % 2) * (int)(street.Pos*scalar), (int)(((((int)street.Direction) % 2)*1000000 + 50)*scalar), (int)(((((int)street.Direction + 1) % 2) * 1000000 + 50) * scalar)), Color.Black);
+                Color c = street.Pos % 10 == 0 ? Color.Black : Color.Orange;
+                spriteBatch.Draw(Pixel, new Rectangle((((int)street.Direction + 1) % 2) * (int)(street.Pos * scalar), (((int)street.Direction) % 2) * (int)(street.Pos*scalar), (int)(((((int)street.Direction) % 2)*1000000 + 50)*scalar), (int)(((((int)street.Direction + 1) % 2) * 1000000 + 50) * scalar)), c);
             }
 
             foreach (Street street in streets)
