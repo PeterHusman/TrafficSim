@@ -151,26 +151,6 @@ namespace TrafficSim
              //   streets[1].Cars.AddFirst(new Car(new Vector2(15000,1500), 0.01f, 0.2f, Direction.West, 50f, 30f, 800, 1300));
             }
 
-            if (keyboard.IsKeyDown(Keys.R))
-            {
-                foreach (Street s in streets)
-                {
-                    if (s.Pos % 100 != 0)
-                    {
-                        s.Pos = (int)s.Pos / 100;
-
-                        s.Pos *= 100;
-                    }
-                }
-            }
-            if(keyboard.IsKeyDown(Keys.V) && oldKeyboard.IsKeyUp(Keys.V))
-            {
-                Intersection inter = intersections[rand.Next(0, intersections.Count)];
-                foreach(Street s in inter.Streets)
-                {
-                    s.Pos++;
-                }
-            }
 
             scalar = mouse.ScrollWheelValue * 0.0001f + 0.1f;
 
@@ -192,6 +172,7 @@ namespace TrafficSim
                     }
 
                     bool carFirst = street.Cars.Find(car).Next == null;
+                    bool carLast = street.Cars.Find(car).Previous == null;
 
                     bool carInSlowDownRange = false;
                     //Brake if cars are ahead
@@ -218,6 +199,10 @@ namespace TrafficSim
                             street.Cars.Find(car).Next.Value.Speed = 0;
                         }   
                     }
+                    if(carLast && car.Position.X * ((int)car.Direction % 2) +car.Position.Y * (((int)car.Direction+ 1 )% 2) > 200)
+                    {
+                        street.Cars.AddFirst(new Car(Vector2.Zero, 0.01f, 0.2f, Direction.East, 30f, 30f, 800, 1300));
+                    }
 
                     foreach(Intersection inter in intersections)
                     {
@@ -236,7 +221,7 @@ namespace TrafficSim
                         //    car.TargetSpeed = car.MaxSpeed;
                         //}
 
-                        if (distance < 300 && distance > 300-car.Speed&& (int)car.Direction % 2 == (int)inter.Direction)
+                        if (distance < 300 && distance > 300-car.Speed&& (int)car.Direction % 2 == (int)inter.Direction && Math.Abs(car.Position.X - inter.Position.X) <= 300 && Math.Abs(car.Position.Y - inter.Position.Y) <= 300)
                         {
                             //Make car move to random street
                             int selection = rand.Next(0, inter.Streets.Length);
@@ -245,6 +230,8 @@ namespace TrafficSim
                             {
                                 selected.Cars.AddBefore(selected.Cars.Find(inter.LastCarsToPass[selected]), car);
                             }
+
+                            #region Teleportation Notes
                             //Teleportation: WHY?!?!?!?!?
                             //(Not sure) Cars only teleport when making U-turn or straight turn, don't always tp
                             //Cars come out w/ same: NS - Y pos, EW - X pos as they went in with
@@ -252,12 +239,14 @@ namespace TrafficSim
                             //Is it just graphical?
                             //When a car makes a turn, both streets involved go orange until you press R.
                             //A random intersection and its streets can be turned orange w/ V.
+
+                            //Finally putting this to rest. The problem was that distance was only measured on one axis. This was intended, but it meant that a car could intersect every intersection at a particular y or x coordinate at one time. Fixed it! 10/28/2017
+                            #endregion
+
                             else
                             {
                                 selected.Cars.AddLast(car);
                             }
-                            inter.Streets[selection].Pos++;
-                            street.Pos++;
                             street.Cars.Remove(car);
 
                             car.Direction = selected.Direction;
@@ -273,6 +262,7 @@ namespace TrafficSim
 
                             car.Speed = car.MaxSpeed;
                             car.TargetSpeed = car.MaxSpeed;
+                            car.Update();
                             car.Update();
                             car.Update();
                             //distance = car.Direction == Direction.West ? (car.Position.X - inter.Position.X) : (car.Direction == Direction.East ? (inter.Position.X - car.Position.X) : (car.Direction == Direction.South ? (car.Position.Y - inter.Position.Y) : (car.Direction == Direction.North ? (inter.Position.Y - car.Position.Y) : 0)));
