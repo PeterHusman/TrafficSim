@@ -26,6 +26,8 @@ namespace TrafficSim
 
         List<Street> streets = new List<Street>();
 
+        SpriteFont font;
+
         List<Intersection> intersections = new List<Intersection>();
 
         bool efficientIntersections = false;
@@ -109,6 +111,12 @@ namespace TrafficSim
             streets.AddRange(horizStreets);
 
 
+            foreach (Street s in streets)
+            {
+                s.Cars.AddFirst(new Car(Vector2.Zero, 0.01f, 0.2f, Direction.East, 30f, 30f, 400, 600));
+            }
+
+            font = Content.Load<SpriteFont>("font");
             // TODO: use this.Content to load your game content here
         }
 
@@ -201,7 +209,7 @@ namespace TrafficSim
                     }
                     if(carLast && car.Position.X * ((int)car.Direction % 2) +car.Position.Y * (((int)car.Direction+ 1 )% 2) > 200)
                     {
-                        street.Cars.AddFirst(new Car(Vector2.Zero, 0.01f, 0.2f, Direction.East, 30f, 30f, 800, 1300));
+                        street.Cars.AddFirst(new Car(Vector2.Zero, 0.01f, 0.4f, Direction.East, 30f, 30f, 500, 600));
                     }
 
                     foreach(Intersection inter in intersections)
@@ -260,18 +268,9 @@ namespace TrafficSim
                                 car.Position = new Vector2(car.Position.X, selected.Pos);
                             }
 
-                            car.Speed = car.MaxSpeed;
-                            car.TargetSpeed = car.MaxSpeed;
-                            car.Update();
-                            car.Update();
-                            car.Update();
-                            //distance = car.Direction == Direction.West ? (car.Position.X - inter.Position.X) : (car.Direction == Direction.East ? (inter.Position.X - car.Position.X) : (car.Direction == Direction.South ? (car.Position.Y - inter.Position.Y) : (car.Direction == Direction.North ? (inter.Position.Y - car.Position.Y) : 0)));
 
-                            //float jumpDist = 400;
 
-                            //car.Position = new Vector2(car.Position.X + (car.Direction == Direction.East ? (jumpDist - distance) : (car.Direction == Direction.West ? -(jumpDist - distance) : 0)), car.Position.Y + (car.Direction == Direction.North ? -(jumpDist - distance) : (car.Direction == Direction.South ? (jumpDist - distance) : 0)));
-
-                            //car.TargetSpeed = car.MaxSpeed;
+                            car.Position += new Vector2(((int)car.Direction - 2)*-300,((int)car.Direction-1)*300);
 
                         }
 
@@ -286,6 +285,7 @@ namespace TrafficSim
                 inter.Update(gameTime.ElapsedGameTime);
             }
 
+           
 
             oldKeyboard = keyboard;
             oldMouse = mouse;
@@ -324,6 +324,7 @@ namespace TrafficSim
                 spriteBatch.Draw(Pixel, new Rectangle((inter.Position.X * scalar).ToInt(), (inter.Position.Y*scalar).ToInt(), 5, 5), Color.Red);
             }
 
+            spriteBatch.DrawString(font,gameTime.TotalGameTime.ToString(),Vector2.Zero,Color.Red);
 
             spriteBatch.End();
             base.Draw(gameTime);
