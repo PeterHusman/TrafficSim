@@ -24,6 +24,10 @@ namespace TrafficSim
 
         List<Car> cars = new List<Car>();
 
+        int crashes = 0;
+
+        int throughput = 0;
+
         List<Street> streets = new List<Street>();
 
         SpriteFont font;
@@ -103,7 +107,7 @@ namespace TrafficSim
             {
                 for(int y = 0; y < width*2; y += 2)
                 {
-                    intersections.Add(new Intersection(new TimeSpan(0, 0, 5), new Vector2(vertStreets[y].Pos + 250, horizStreets[x].Pos + 250), IntersectionDirection.NorthSouth, new Street[] { horizStreets[x], horizStreets[x + 1], vertStreets[y], vertStreets[y + 1] }));
+                    intersections.Add(new Intersection(new TimeSpan(0, 0, rand.Next(1, 11)), new Vector2(vertStreets[y].Pos + 250, horizStreets[x].Pos + 250), IntersectionDirection.NorthSouth, new Street[] { horizStreets[x], horizStreets[x + 1], vertStreets[y], vertStreets[y + 1] }));
                 }
             }
 
@@ -198,6 +202,10 @@ namespace TrafficSim
                             carInSlowDownRange = false;
                         }
 
+                        if(distance < 150 && car.Acceleration != 0)
+                        {
+                            crashes++;
+                        }
                         if(distance < 150)
                         {
                             car.Acceleration = 0;
@@ -205,11 +213,13 @@ namespace TrafficSim
                             
                             street.Cars.Find(car).Next.Value.Acceleration = 0;
                             street.Cars.Find(car).Next.Value.Speed = 0;
+
+                            
                         }   
                     }
                     if(carLast && car.Position.X * ((int)car.Direction % 2) +car.Position.Y * (((int)car.Direction+ 1 )% 2) > 200)
                     {
-                        street.Cars.AddFirst(new Car(Vector2.Zero, 0.01f, 0.4f, Direction.East, 30f, 30f, 500, 600));
+                        street.Cars.AddFirst(new Car(Vector2.Zero, 0.01f, 0.35f, Direction.East, 30f, 30f, 600, 600));
                     }
 
                     foreach(Intersection inter in intersections)
@@ -255,6 +265,7 @@ namespace TrafficSim
                             {
                                 selected.Cars.AddLast(car);
                             }
+                            inter.LastCarsToPass[selected] = car;
                             street.Cars.Remove(car);
 
                             car.Direction = selected.Direction;
@@ -275,8 +286,12 @@ namespace TrafficSim
                         }
 
                     }
-
-                    car.Update();
+                    if((car.Position.X >= 5 * 2000 + 500 && car.Position.X <= 5 * 2000 + 900 )||( car.Position.Y >= 5 * 2000 + 500 && car.Position.Y <= 5 * 2000 + 900))
+                    {
+                        throughput++;
+                        car.Position = new Vector2(5 * 2000 + 1100, 5 * 2000 + 1100);
+                    }
+                        car.Update();
                 }
             }
 
@@ -284,7 +299,6 @@ namespace TrafficSim
             {
                 inter.Update(gameTime.ElapsedGameTime);
             }
-
            
 
             oldKeyboard = keyboard;
@@ -298,8 +312,8 @@ namespace TrafficSim
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Draw(GameTime gameTime)
         {
-            Color clearColor = intersections[0].Direction == IntersectionDirection.NorthSouth ? Color.Green : Color.CornflowerBlue;
-            GraphicsDevice.Clear(clearColor);
+            //Color clearColor = intersections[0].Direction == IntersectionDirection.NorthSouth ? Color.Green : Color.CornflowerBlue;
+            GraphicsDevice.Clear(Color.CornflowerBlue);//clearColor);
 
             spriteBatch.Begin();
 
@@ -321,11 +335,11 @@ namespace TrafficSim
 
             foreach(Intersection inter in intersections)
             {
-                spriteBatch.Draw(Pixel, new Rectangle((inter.Position.X * scalar).ToInt(), (inter.Position.Y*scalar).ToInt(), 5, 5), Color.Red);
+                spriteBatch.Draw(Pixel, new Rectangle((inter.Position.X * scalar).ToInt(), (inter.Position.Y*scalar).ToInt(), 5, 5), inter.Direction == IntersectionDirection.NorthSouth ? Color.Green : Color.Red);
             }
 
-            spriteBatch.DrawString(font,gameTime.TotalGameTime.ToString(),Vector2.Zero,Color.Red);
-
+            spriteBatch.DrawString(font,gameTime.TotalGameTime.ToString() + $"\nThroughput: {throughput}\nCrashes: {crashes}",Vector2.Zero,Color.Red);
+            
             spriteBatch.End();
             base.Draw(gameTime);
         }
