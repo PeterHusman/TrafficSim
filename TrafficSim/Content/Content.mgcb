@@ -20,3 +20,8 @@
 /processorParam:TextureFormat=Compressed
 /build:font.spritefont
 
+#begin Data.xml
+/importer:XmlImporter
+/processor:PassThroughProcessor
+/build:Data.xml
+

@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using System;
 using System.Collections.Generic;
+using System.Xml;
 
 namespace TrafficSim
 {
@@ -11,6 +12,8 @@ namespace TrafficSim
     /// </summary>
     public class Game1 : Game
     {
+        XmlDocument document;
+
         GraphicsDeviceManager graphics;
         SpriteBatch spriteBatch;
 
@@ -18,6 +21,8 @@ namespace TrafficSim
 
         MouseState mouse;
         MouseState oldMouse;
+
+        TimeSpan oldTotalGameTime;
 
         KeyboardState keyboard;
         KeyboardState oldKeyboard;
@@ -39,6 +44,16 @@ namespace TrafficSim
         float scalar = 0.1f;
 
         public static Texture2D Pixel;
+
+        XmlElement root;
+
+
+        float accelerationError = 0.00f;
+        float decelerationError = 0.00f;
+        float brakingDistanceError = 0.00f;
+        float intersectionBDistanceError = 0.00f;
+        
+
 
         public Game1()
         {
@@ -65,6 +80,11 @@ namespace TrafficSim
         /// </summary>
         protected override void LoadContent()
         {
+            document = new XmlDocument();
+            document.Load("Data.xml");
+            root = document.DocumentElement;
+            
+
             IsMouseVisible = true;
 
             rand = new Random();
@@ -119,7 +139,7 @@ namespace TrafficSim
             {
                 s.Cars.AddFirst(new Car(Vector2.Zero, 0.01f, 0.2f, Direction.East, 30f, 30f, 400, 600));
             }
-
+            
             font = Content.Load<SpriteFont>("font");
             // TODO: use this.Content to load your game content here
         }
@@ -142,26 +162,26 @@ namespace TrafficSim
         {
             mouse = Mouse.GetState();
             keyboard = Keyboard.GetState();
-            if (keyboard.IsKeyDown(Keys.Up) && oldKeyboard.IsKeyUp(Keys.Up))
-            { 
+            //if (keyboard.IsKeyDown(Keys.Up) && oldKeyboard.IsKeyUp(Keys.Up))
+            //{ 
 
-            }
-            else if (keyboard.IsKeyDown(Keys.Space) && oldKeyboard.IsKeyUp(Keys.Space))
-            {
-              foreach(Street s in streets)
-                {
-                    s.Cars.AddFirst(new Car(Vector2.Zero, 0.01f, 0.2f, Direction.East, 30f, 30f, 400, 600));
-                }
-            }
-            if (mouse.LeftButton == ButtonState.Pressed && oldMouse.LeftButton == ButtonState.Released)
-            {
-                streets[rand.Next(0, streets.Count)].Cars.AddFirst(new Car(Vector2.Zero, 0.01f, 0.2f, Direction.East, 30f, 30f, 800, 1300));
-             //   streets[0].Cars.AddFirst(new Car(new Vector2(500,1000), 0.01f, 0.2f, Direction.East, 50f, 30f, 800));
-            }
-            if (mouse.RightButton == ButtonState.Pressed && oldMouse.RightButton == ButtonState.Released)
-            {
-             //   streets[1].Cars.AddFirst(new Car(new Vector2(15000,1500), 0.01f, 0.2f, Direction.West, 50f, 30f, 800, 1300));
-            }
+            //}
+            //else if (keyboard.IsKeyDown(Keys.Space) && oldKeyboard.IsKeyUp(Keys.Space))
+            //{
+            //  foreach(Street s in streets)
+            //    {
+            //        s.Cars.AddFirst(new Car(Vector2.Zero, 0.01f, 0.2f, Direction.East, 30f, 30f, 400, 600));
+            //    }
+            //}
+            //if (mouse.LeftButton == ButtonState.Pressed && oldMouse.LeftButton == ButtonState.Released)
+            //{
+            //    streets[rand.Next(0, streets.Count)].Cars.AddFirst(new Car(Vector2.Zero, 0.01f, 0.2f, Direction.East, 30f, 30f, 800, 1300));
+            // //   streets[0].Cars.AddFirst(new Car(new Vector2(500,1000), 0.01f, 0.2f, Direction.East, 50f, 30f, 800));
+            //}
+            //if (mouse.RightButton == ButtonState.Pressed && oldMouse.RightButton == ButtonState.Released)
+            //{
+            // //   streets[1].Cars.AddFirst(new Car(new Vector2(15000,1500), 0.01f, 0.2f, Direction.West, 50f, 30f, 800, 1300));
+            //}
 
 
             scalar = mouse.ScrollWheelValue * 0.0001f + 0.1f;
@@ -219,7 +239,7 @@ namespace TrafficSim
                     }
                     if(carLast && car.Position.X * ((int)car.Direction % 2) +car.Position.Y * (((int)car.Direction+ 1 )% 2) > 200)
                     {
-                        street.Cars.AddFirst(new Car(Vector2.Zero, 0.01f, 0.35f, Direction.East, 30f, 30f, 600, 600));
+                        street.Cars.AddFirst(new Car(Vector2.Zero, 0.01f + ErrorOf(accelerationError), 0.35f + ErrorOf(decelerationError), Direction.East, 30f, 30f, 600 + ErrorOf(brakingDistanceError), 600 + ErrorOf(intersectionBDistanceError)));
                     }
 
                     foreach(Intersection inter in intersections)
@@ -299,11 +319,50 @@ namespace TrafficSim
             {
                 inter.Update(gameTime.ElapsedGameTime);
             }
-           
 
+            if (oldTotalGameTime != null && oldTotalGameTime.Seconds /30 != gameTime.TotalGameTime.Seconds / 30)
+            {
+                XmlElement element = document.CreateElement("Entry");
+                element.AppendChild(document.CreateTextNode(DateTime.Now.ToString()));
+                XmlElement accelerationE = document.CreateElement("AccelerationVariationPositive");
+                accelerationE.AppendChild(document.CreateTextNode(accelerationError.ToString()));
+                XmlElement decelerationE = document.CreateElement("DecelerationVariationPositive");
+                decelerationE.AppendChild(document.CreateTextNode(decelerationError.ToString()));
+                XmlElement bDistE = document.CreateElement("BrakingDistanceVariationPositive");
+                bDistE.AppendChild(document.CreateTextNode(brakingDistanceError.ToString()));
+                XmlElement iBDistE = document.CreateElement("IntersectionBrakingDistanceVariationPositive");
+                iBDistE.AppendChild(document.CreateTextNode(intersectionBDistanceError.ToString()));
+                XmlElement time = document.CreateElement("MinutesPassed");
+                time.AppendChild(document.CreateTextNode(Math.Round(gameTime.TotalGameTime.TotalMinutes,2).ToString()));
+                XmlElement crashEl = document.CreateElement("Crashes");
+                crashEl.AppendChild(document.CreateTextNode(crashes.ToString()));
+                XmlElement throughPutEl = document.CreateElement("Throughput");
+                throughPutEl.AppendChild(document.CreateTextNode(throughput.ToString()));
+                element.AppendChild(time);
+                element.AppendChild(accelerationE);
+                element.AppendChild(decelerationE);
+                element.AppendChild(bDistE);
+                element.AppendChild(iBDistE);
+                element.AppendChild(crashEl);
+                element.AppendChild(throughPutEl);
+                root.AppendChild(element);
+                document.Save("Data.xml");
+            }
             oldKeyboard = keyboard;
             oldMouse = mouse;
+            oldTotalGameTime = gameTime.TotalGameTime;
             base.Update(gameTime);
+        }
+
+        float ErrorOf(float plusOrMinus)
+        {
+            float output = (float)rand.NextDouble() * plusOrMinus * rand.Next(-1,2);
+            return output;
+        }
+
+        int ErrorOf(int plusOrMinus)
+        {
+            return rand.Next(-plusOrMinus, plusOrMinus + 1);
         }
 
         /// <summary>
