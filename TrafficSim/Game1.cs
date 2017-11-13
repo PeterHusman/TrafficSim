@@ -50,7 +50,7 @@ namespace TrafficSim
 
         float accelerationError = 0.00f;
         float decelerationError = 0.00f;
-        float brakingDistanceError = 0.00f;
+        float brakingDistanceError = 100.00f;
         float intersectionBDistanceError = 0.00f;
         
 
