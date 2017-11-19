@@ -48,10 +48,10 @@ namespace TrafficSim
         XmlElement root;
 
 
-        float accelerationError = 0.00f;
-        float decelerationError = 0.00f;
+        float accelerationError = 0.009f;
+        float decelerationError = 0.20f;
         float brakingDistanceError = 100.00f;
-        float intersectionBDistanceError = 0.00f;
+        float intersectionBDistanceError = 30.00f;
         
 
 
