@@ -246,11 +246,12 @@ namespace TrafficSim
                     {
                         float distance = car.Direction == Direction.West ? (car.Position.X - inter.Position.X) : (car.Direction == Direction.East ? (inter.Position.X - car.Position.X) : (car.Direction == Direction.South ? (inter.Position.Y-car.Position.Y) : (car.Direction == Direction.North ? (car.Position.Y-inter.Position.Y) : 0)));
 
-                        if(distance < car.IntersectionBrakingDistance && (int)car.Direction % 2 != (int)inter.Direction && distance > 0)
+                        //TODO: Fix cars intersecting with all intersections in one axis
+                        if(distance < car.IntersectionBrakingDistance && (int)car.Direction % 2 != (int)inter.Direction && distance > 0 && Math.Abs(car.Position.X - inter.Position.X) <= car.IntersectionBrakingDistance && Math.Abs(car.Position.Y - inter.Position.Y) <= car.IntersectionBrakingDistance)
                         {
                             car.TargetSpeed = Math.Min(Math.Max(0f, car.TargetSpeed * (distance - 100) / car.IntersectionBrakingDistance),car.TargetSpeed);
                         }
-                        else if (carFirst && (int)car.Direction % 2 == (int)inter.Direction)
+                        else if (carFirst && (int)car.Direction % 2 == (int)inter.Direction && Math.Abs(car.Position.X - inter.Position.X) <= car.IntersectionBrakingDistance && Math.Abs(car.Position.Y - inter.Position.Y) <= car.IntersectionBrakingDistance)
                         {
                             car.TargetSpeed = car.MaxSpeed;
                         }
