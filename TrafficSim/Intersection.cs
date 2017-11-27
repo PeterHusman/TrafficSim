@@ -13,7 +13,7 @@ namespace TrafficSim
 
         public Vector2 Position { get; set; }
 
-        public Street[] Streets { get; set; }
+        public List<Street> Streets { get; set; }
 
         public Dictionary<Street, Car> LastCarsToPass { get; private set; }
 
@@ -27,7 +27,7 @@ namespace TrafficSim
             Position = position;
             Direction = direction;
             timePassed = new TimeSpan(0);
-            Streets = streets;
+            Streets = new List<Street>(streets);
             LastCarsToPass = new Dictionary<Street, Car>();
             foreach(Street s in Streets)
             {

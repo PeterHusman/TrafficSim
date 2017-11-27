@@ -48,10 +48,12 @@ namespace TrafficSim
         XmlElement root;
 
 
-        float accelerationError = 0.009f;
-        float decelerationError = 0.20f;
-        float brakingDistanceError = 100.00f;
-        float intersectionBDistanceError = 30.00f;
+        float accelerationError = 0.00f;
+        float decelerationError = 0.0f;
+        float brakingDistanceError = 00.00f;
+        float intersectionBDistanceError = 0.00f;
+        int intersectionTimeMin = 10;
+        int intersectionTimeMax = 30;
         
 
 
@@ -127,7 +129,7 @@ namespace TrafficSim
             {
                 for(int y = 0; y < width*2; y += 2)
                 {
-                    intersections.Add(new Intersection(new TimeSpan(0, 0, rand.Next(1, 11)), new Vector2(vertStreets[y].Pos + 250, horizStreets[x].Pos + 250), IntersectionDirection.NorthSouth, new Street[] { horizStreets[x], horizStreets[x + 1], vertStreets[y], vertStreets[y + 1] }));
+                    intersections.Add(new Intersection(new TimeSpan(0, 0, rand.Next(intersectionTimeMin, intersectionTimeMax + 1)), new Vector2(vertStreets[y].Pos + 250, horizStreets[x].Pos + 250), IntersectionDirection.NorthSouth, new Street[] { horizStreets[x], horizStreets[x + 1], vertStreets[y], vertStreets[y + 1] }));
                 }
             }
 
@@ -235,7 +237,7 @@ namespace TrafficSim
                             street.Cars.Find(car).Next.Value.Speed = 0;
 
                             
-                        }   
+                        }
                     }
                     if(carLast && car.Position.X * ((int)car.Direction % 2) +car.Position.Y * (((int)car.Direction+ 1 )% 2) > 200)
                     {
@@ -253,7 +255,7 @@ namespace TrafficSim
                         }
                         else if (carFirst && (int)car.Direction % 2 == (int)inter.Direction && Math.Abs(car.Position.X - inter.Position.X) <= car.IntersectionBrakingDistance && Math.Abs(car.Position.Y - inter.Position.Y) <= car.IntersectionBrakingDistance)
                         {
-                            car.TargetSpeed = car.MaxSpeed;
+                            car.TargetSpeed = Math.Min(Math.Max(10f, car.TargetSpeed * (distance - 100) / car.IntersectionBrakingDistance), car.TargetSpeed);//car.MaxSpeed;
                         }
                         //else if(efficientIntersections && distance <= car.IntersectionBrakingDistance)
                         //{
@@ -263,47 +265,68 @@ namespace TrafficSim
                         if (distance < 300 && distance > 300-car.Speed&& (int)car.Direction % 2 == (int)inter.Direction && Math.Abs(car.Position.X - inter.Position.X) <= 300 && Math.Abs(car.Position.Y - inter.Position.Y) <= 300)
                         {
                             //Make car move to random street
-                            int selection = rand.Next(0, inter.Streets.Length);
-                            Street selected = inter.Streets[selection];
-                            if (inter.LastCarsToPass[selected] != null && selected.Cars.Contains(inter.LastCarsToPass[selected]))
+                            bool turn = true;
+                            if(inter.Streets.Count == 0)
                             {
-                                selected.Cars.AddBefore(selected.Cars.Find(inter.LastCarsToPass[selected]), car);
+                                car.Acceleration = 0;
+                                car.Speed = 0;
+                                turn = false;
                             }
-
-                            #region Teleportation Notes
-                            //Teleportation: WHY?!?!?!?!?
-                            //(Not sure) Cars only teleport when making U-turn or straight turn, don't always tp
-                            //Cars come out w/ same: NS - Y pos, EW - X pos as they went in with
-                            //Do cars come out of the same intersection, despite a weird street?
-                            //Is it just graphical?
-                            //When a car makes a turn, both streets involved go orange until you press R.
-                            //A random intersection and its streets can be turned orange w/ V.
-
-                            //Finally putting this to rest. The problem was that distance was only measured on one axis. This was intended, but it meant that a car could intersect every intersection at a particular y or x coordinate at one time. Fixed it! 10/28/2017
-                            #endregion
-
-                            else
+                            if (turn)
                             {
-                                selected.Cars.AddLast(car);
+                                int selection = rand.Next(0, inter.Streets.Count);
+                                Street selected = inter.Streets[selection];
+                                if (inter.LastCarsToPass[selected] != null && selected.Cars.Contains(inter.LastCarsToPass[selected]))
+                                {
+                                    selected.Cars.AddBefore(selected.Cars.Find(inter.LastCarsToPass[selected]), car);
+                                    Car inAccident = car;
+                                    for (int i = 0; i < 3; i++)
+                                    {
+                                        inAccident = selected.Cars.Find(inAccident).Next?.Value;
+                                        if (inAccident == null)
+                                        { break; }
+                                        if (inAccident.Acceleration == 0f)
+                                        {
+                                            inter.Streets.Remove(inter.Streets[selection]);
+                                            break;
+                                        }
+                                    }
+                                }
+
+                                #region Teleportation Notes
+                                //Teleportation: WHY?!?!?!?!?
+                                //(Not sure) Cars only teleport when making U-turn or straight turn, don't always tp
+                                //Cars come out w/ same: NS - Y pos, EW - X pos as they went in with
+                                //Do cars come out of the same intersection, despite a weird street?
+                                //Is it just graphical?
+                                //When a car makes a turn, both streets involved go orange until you press R.
+                                //A random intersection and its streets can be turned orange w/ V.
+
+                                //Finally putting this to rest. The problem was that distance was only measured on one axis. This was intended, but it meant that a car could intersect every intersection at a particular y or x coordinate at one time. Fixed it! 10/28/2017
+                                #endregion
+
+                                else
+                                {
+                                    selected.Cars.AddLast(car);
+                                }
+                                inter.LastCarsToPass[selected] = car;
+                                street.Cars.Remove(car);
+
+                                car.Direction = selected.Direction;
+
+                                if ((int)selected.Direction % 2 == 0)
+                                {
+                                    car.Position = new Vector2(selected.Pos, car.Position.Y);
+                                }
+                                else
+                                {
+                                    car.Position = new Vector2(car.Position.X, selected.Pos);
+                                }
+
+
+
+                                car.Position += new Vector2(((int)car.Direction - 2) * -300, ((int)car.Direction - 1) * 300);
                             }
-                            inter.LastCarsToPass[selected] = car;
-                            street.Cars.Remove(car);
-
-                            car.Direction = selected.Direction;
-
-                            if ((int)selected.Direction % 2 == 0)
-                            {
-                                car.Position = new Vector2(selected.Pos, car.Position.Y);
-                            }
-                            else
-                            {
-                                car.Position = new Vector2(car.Position.X, selected.Pos);
-                            }
-
-
-
-                            car.Position += new Vector2(((int)car.Direction - 2)*-300,((int)car.Direction-1)*300);
-
                         }
 
                     }
@@ -333,6 +356,10 @@ namespace TrafficSim
                 bDistE.AppendChild(document.CreateTextNode(brakingDistanceError.ToString()));
                 XmlElement iBDistE = document.CreateElement("IntersectionBrakingDistanceVariationPositive");
                 iBDistE.AppendChild(document.CreateTextNode(intersectionBDistanceError.ToString()));
+                XmlElement iTMin = document.CreateElement("IntersectionTimeMin");
+                iTMin.AppendChild(document.CreateTextNode(intersectionTimeMin.ToString()));
+                XmlElement iTMax = document.CreateElement("IntersectionTimeMax");
+                iTMax.AppendChild(document.CreateTextNode(intersectionTimeMax.ToString()));
                 XmlElement time = document.CreateElement("MinutesPassed");
                 time.AppendChild(document.CreateTextNode(Math.Round(gameTime.TotalGameTime.TotalMinutes,2).ToString()));
                 XmlElement crashEl = document.CreateElement("Crashes");
@@ -344,6 +371,8 @@ namespace TrafficSim
                 element.AppendChild(decelerationE);
                 element.AppendChild(bDistE);
                 element.AppendChild(iBDistE);
+                element.AppendChild(iTMin);
+                element.AppendChild(iTMax);
                 element.AppendChild(crashEl);
                 element.AppendChild(throughPutEl);
                 root.AppendChild(element);
