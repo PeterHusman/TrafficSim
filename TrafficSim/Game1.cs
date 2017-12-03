@@ -48,6 +48,11 @@ namespace TrafficSim
         XmlElement root;
 
 
+        //In California in 2013, 156909 injury-causing accidents occurred.
+        //That's ~430 PER DAY
+        //~18 per hour
+        //1 every 3 minutes
+
         float accelerationError = 0.00f;
         float decelerationError = 0.0f;
         float brakingDistanceError = 00.00f;
@@ -139,7 +144,10 @@ namespace TrafficSim
 
             foreach (Street s in streets)
             {
-                s.Cars.AddFirst(new Car(Vector2.Zero, 0.01f, 0.2f, Direction.East, 30f, 30f, 400, 600));
+                //feet/pixels * pixels/update * updates/second * seconds/hour * miles/feet = miles/hour
+                //15/150 * speed (pixels/update) * 60 * 3600 * 1/5280 = speed (mi/hour)
+                
+                s.Cars.AddFirst(new Car(Vector2.Zero, 0.01f, 0.2f, Direction.East, 77f/9f, 30f, 400, 600));
             }
             
             font = Content.Load<SpriteFont>("font");
@@ -241,7 +249,7 @@ namespace TrafficSim
                     }
                     if(carLast && car.Position.X * ((int)car.Direction % 2) +car.Position.Y * (((int)car.Direction+ 1 )% 2) > 200)
                     {
-                        street.Cars.AddFirst(new Car(Vector2.Zero, 0.01f + ErrorOf(accelerationError), 0.35f + ErrorOf(decelerationError), Direction.East, 30f, 30f, 600 + ErrorOf(brakingDistanceError), 600 + ErrorOf(intersectionBDistanceError)));
+                        street.Cars.AddFirst(new Car(Vector2.Zero, 0.01f + ErrorOf(accelerationError), 0.35f + ErrorOf(decelerationError), Direction.East, 77f/9f, 30f, 600 + ErrorOf(brakingDistanceError), 600 + ErrorOf(intersectionBDistanceError)));
                     }
 
                     foreach(Intersection inter in intersections)
@@ -253,9 +261,13 @@ namespace TrafficSim
                         {
                             car.TargetSpeed = Math.Min(Math.Max(0f, car.TargetSpeed * (distance - 100) / car.IntersectionBrakingDistance),car.TargetSpeed);
                         }
-                        else if (carFirst && (int)car.Direction % 2 == (int)inter.Direction && Math.Abs(car.Position.X - inter.Position.X) <= car.IntersectionBrakingDistance && Math.Abs(car.Position.Y - inter.Position.Y) <= car.IntersectionBrakingDistance)
+                        else if ((int)car.Direction % 2 == (int)inter.Direction && distance <= car.IntersectionBrakingDistance && Math.Abs(car.Position.X - inter.Position.X) <= car.IntersectionBrakingDistance && Math.Abs(car.Position.Y - inter.Position.Y) <= car.IntersectionBrakingDistance)
                         {
-                            car.TargetSpeed = Math.Min(Math.Max(10f, car.TargetSpeed * (distance - 100) / car.IntersectionBrakingDistance), car.TargetSpeed);//car.MaxSpeed;
+                            car.TargetSpeed = Math.Min(Math.Max(car.MaxSpeed/5f, car.TargetSpeed * (distance - 100) / car.IntersectionBrakingDistance), car.TargetSpeed);//car.MaxSpeed;
+                        }
+                        else if(carFirst)
+                        {
+                            car.TargetSpeed = car.MaxSpeed;
                         }
                         //else if(efficientIntersections && distance <= car.IntersectionBrakingDistance)
                         //{
