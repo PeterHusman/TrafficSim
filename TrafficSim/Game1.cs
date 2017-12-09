@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Xml;
 
 namespace TrafficSim
@@ -87,10 +88,18 @@ namespace TrafficSim
         /// </summary>
         protected override void LoadContent()
         {
-            document = new XmlDocument();
-            document.Load("Data.xml");
-            root = document.DocumentElement;
             
+            document = new XmlDocument();
+            try
+            {
+                document.Load("Data.xml");
+                root = document.DocumentElement;
+            }
+            catch(Exception e)
+            {
+                document = null;
+                root = null;
+            }
 
             IsMouseVisible = true;
 
@@ -359,7 +368,7 @@ namespace TrafficSim
                 inter.Update(gameTime.ElapsedGameTime);
             }
 
-            if (oldTotalGameTime != null && oldTotalGameTime.Seconds /30 != gameTime.TotalGameTime.Seconds / 30)
+            if (oldTotalGameTime != null && oldTotalGameTime.Seconds /30 != gameTime.TotalGameTime.Seconds / 30 && document != null)
             {
                 XmlElement element = document.CreateElement("Entry");
                 element.AppendChild(document.CreateTextNode(DateTime.Now.ToString()));
@@ -391,6 +400,7 @@ namespace TrafficSim
                 element.AppendChild(crashEl);
                 element.AppendChild(throughPutEl);
                 root.AppendChild(element);
+                
                 document.Save("Data.xml");
             }
             oldKeyboard = keyboard;
