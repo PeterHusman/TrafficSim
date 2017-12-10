@@ -48,6 +48,8 @@ namespace TrafficSim
 
         XmlElement root;
 
+        List<XmlElement> trial = new List<XmlElement>();
+
 
         //In California in 2013, 156909 injury-causing accidents occurred.
         //That's ~430 PER DAY
@@ -90,16 +92,16 @@ namespace TrafficSim
         {
             
             document = new XmlDocument();
-            try
-            {
+            //try
+            //{
                 document.Load("Data.xml");
                 root = document.DocumentElement;
-            }
-            catch(Exception e)
-            {
-                document = null;
-                root = null;
-            }
+            //}
+            //catch(Exception e)
+            //{
+            //    document = null;
+            //    root = null;
+            //}
 
             IsMouseVisible = true;
 
@@ -202,6 +204,12 @@ namespace TrafficSim
             // //   streets[1].Cars.AddFirst(new Car(new Vector2(15000,1500), 0.01f, 0.2f, Direction.West, 50f, 30f, 800, 1300));
             //}
 
+
+            if(keyboard.IsKeyDown(Keys.Escape))
+            {
+                Program.DontRestart();
+                Exit();
+            }
 
             scalar = mouse.ScrollWheelValue * 0.0001f + 0.1f;
 
@@ -402,6 +410,12 @@ namespace TrafficSim
                 root.AppendChild(element);
                 
                 document.Save("Data.xml");
+                trial.Add(element);
+
+                if ((trial.Count > 3 && trial[trial.Count-3].ChildNodes[8] == trial[trial.Count-2].ChildNodes[8] && trial[trial.Count - 3].ChildNodes[8] == trial[trial.Count - 1].ChildNodes[8] && trial[trial.Count - 3].ChildNodes[9] == trial[trial.Count - 2].ChildNodes[9] && trial[trial.Count - 3].ChildNodes[9] == trial[trial.Count - 1].ChildNodes[9]) || gameTime.TotalGameTime.TotalMinutes >= 20f)
+                {
+                    Exit();
+                }
             }
             oldKeyboard = keyboard;
             oldMouse = mouse;
