@@ -90,7 +90,16 @@ namespace TrafficSim
         /// </summary>
         protected override void LoadContent()
         {
-            
+            rand = new Random();
+
+            accelerationError = (float)rand.NextDouble() * 0.0099f;
+            decelerationError = (float)rand.NextDouble() * 0.1f;
+            brakingDistanceError = (float)rand.NextDouble() * 100f;
+            intersectionBDistanceError = (float)rand.NextDouble() * 100f;
+            intersectionTimeMin = rand.Next(5,11);
+            intersectionTimeMax = rand.Next(15,46);
+
+
             document = new XmlDocument();
             //try
             //{
@@ -105,7 +114,7 @@ namespace TrafficSim
 
             IsMouseVisible = true;
 
-            rand = new Random();
+            
 
             graphics.PreferredBackBufferHeight = 1080;
             graphics.PreferredBackBufferWidth = 1920;
@@ -207,7 +216,7 @@ namespace TrafficSim
 
             if(keyboard.IsKeyDown(Keys.Escape))
             {
-                Program.DontRestart();
+                Program.Restart();
                 Exit();
             }
 
@@ -412,8 +421,9 @@ namespace TrafficSim
                 document.Save("Data.xml");
                 trial.Add(element);
 
-                if ((trial.Count > 3 && trial[trial.Count-3].ChildNodes[8] == trial[trial.Count-2].ChildNodes[8] && trial[trial.Count - 3].ChildNodes[8] == trial[trial.Count - 1].ChildNodes[8] && trial[trial.Count - 3].ChildNodes[9] == trial[trial.Count - 2].ChildNodes[9] && trial[trial.Count - 3].ChildNodes[9] == trial[trial.Count - 1].ChildNodes[9]) || gameTime.TotalGameTime.TotalMinutes >= 20f)
+                if ((trial.Count > 3 && trial[trial.Count-3].ChildNodes[8].InnerText == trial[trial.Count-2].ChildNodes[8].InnerText && trial[trial.Count - 3].ChildNodes[8].InnerText == trial[trial.Count - 1].ChildNodes[8].InnerText && trial[trial.Count - 3].ChildNodes[9].InnerText == trial[trial.Count - 2].ChildNodes[9].InnerText && trial[trial.Count - 3].ChildNodes[9].InnerText == trial[trial.Count - 1].ChildNodes[9].InnerText) || gameTime.TotalGameTime.TotalMinutes >= 20f)
                 {
+                    Program.Restart();
                     Exit();
                 }
             }

@@ -9,12 +9,12 @@ namespace TrafficSim
     public static class Program
     {
 
-        public static void DontRestart()
+        public static void Restart()
         {
-            cont = false;
+            cont = true;
         }
 
-        private static bool cont = true;
+        private static bool cont = false;
 
         /// <summary>
         /// The main entry point for the application.
@@ -22,11 +22,12 @@ namespace TrafficSim
         [STAThread]
         static void Main()
         {
-            while (cont)
+            do
             {
+                cont = false;
                 using (var game = new Game1())
                     game.Run();
-            }
+            } while (cont);
         }
     }
 #endif
