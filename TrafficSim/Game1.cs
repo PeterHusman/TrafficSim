@@ -34,6 +34,10 @@ namespace TrafficSim
 
         int throughput = 0;
 
+        int timeAccelerationFactor = 120;
+
+        TimeSpan totalGameTimeAccelerated = new TimeSpan();
+
         List<Street> streets = new List<Street>();
 
         SpriteFont font;
@@ -111,7 +115,7 @@ namespace TrafficSim
             //    document = null;
             //    root = null;
             //}
-
+            
             IsMouseVisible = true;
 
             
@@ -190,247 +194,252 @@ namespace TrafficSim
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Update(GameTime gameTime)
         {
-            mouse = Mouse.GetState();
-            keyboard = Keyboard.GetState();
-            //if (keyboard.IsKeyDown(Keys.Up) && oldKeyboard.IsKeyUp(Keys.Up))
-            //{ 
-
-            //}
-            //else if (keyboard.IsKeyDown(Keys.Space) && oldKeyboard.IsKeyUp(Keys.Space))
-            //{
-            //  foreach(Street s in streets)
-            //    {
-            //        s.Cars.AddFirst(new Car(Vector2.Zero, 0.01f, 0.2f, Direction.East, 30f, 30f, 400, 600));
-            //    }
-            //}
-            //if (mouse.LeftButton == ButtonState.Pressed && oldMouse.LeftButton == ButtonState.Released)
-            //{
-            //    streets[rand.Next(0, streets.Count)].Cars.AddFirst(new Car(Vector2.Zero, 0.01f, 0.2f, Direction.East, 30f, 30f, 800, 1300));
-            // //   streets[0].Cars.AddFirst(new Car(new Vector2(500,1000), 0.01f, 0.2f, Direction.East, 50f, 30f, 800));
-            //}
-            //if (mouse.RightButton == ButtonState.Pressed && oldMouse.RightButton == ButtonState.Released)
-            //{
-            // //   streets[1].Cars.AddFirst(new Car(new Vector2(15000,1500), 0.01f, 0.2f, Direction.West, 50f, 30f, 800, 1300));
-            //}
-
-
-            if(keyboard.IsKeyDown(Keys.Escape))
+            for (int c = 0; c < timeAccelerationFactor; c++)
             {
-                Program.Restart();
-                Exit();
-            }
+                mouse = Mouse.GetState();
+                keyboard = Keyboard.GetState();
+                //if (keyboard.IsKeyDown(Keys.Up) && oldKeyboard.IsKeyUp(Keys.Up))
+                //{ 
 
-            scalar = mouse.ScrollWheelValue * 0.0001f + 0.1f;
-
-            foreach (Street street in streets)
-            {
-                LinkedList<Car> cars = new LinkedList<Car>(street.Cars);
-                foreach (Car car in cars)
-                {
-                    //Car follows lane
-                    car.Direction = street.Direction;
-
-                    if((int)street.Direction % 2 == 0)
-                    {
-                        car.Position = new Vector2(street.Pos,car.Position.Y);
-                    }
-                    else
-                    {
-                        car.Position = new Vector2(car.Position.X,street.Pos);
-                    }
-
-                    bool carFirst = street.Cars.Find(car).Next == null;
-                    bool carLast = street.Cars.Find(car).Previous == null;
-
-                    bool carInSlowDownRange = false;
-
-                    //List<float> carSpeeds = new List<float>();
-
-                    //Brake if cars are ahead
-                    if (!carFirst)
-                    {
-                        float distance = (float)Math.Sqrt((car.Position.X - street.Cars.Find(car).Next.Value.Position.X)* (car.Position.X - street.Cars.Find(car).Next.Value.Position.X) + (car.Position.Y - street.Cars.Find(car).Next.Value.Position.Y)* (car.Position.Y - street.Cars.Find(car).Next.Value.Position.Y));
-                        if (distance < car.BrakingDistance)
-                        {
-                            car.TargetSpeed = Math.Max(0f, car.TargetSpeed * distance/car.BrakingDistance);
-                            carInSlowDownRange = true;
-                        }
-                        else
-                        {
-                            car.TargetSpeed = car.MaxSpeed;
-                            carInSlowDownRange = false;
-                        }
-
-                        if(distance < 150 && car.Acceleration != 0)
-                        {
-                            crashes++;
-                        }
-                        if(distance < 150)
-                        {
-                            car.Acceleration = 0;
-                            car.Speed = 0;
-                            
-                            street.Cars.Find(car).Next.Value.Acceleration = 0;
-                            street.Cars.Find(car).Next.Value.Speed = 0;
-
-                            
-                        }
-                    }
-                    if(carLast && car.Position.X * ((int)car.Direction % 2) +car.Position.Y * (((int)car.Direction+ 1 )% 2) > 200)
-                    {
-                        street.Cars.AddFirst(new Car(Vector2.Zero, 0.01f + ErrorOf(accelerationError), 0.35f + ErrorOf(decelerationError), Direction.East, 77f/9f, 30f, 600 + ErrorOf(brakingDistanceError), 600 + ErrorOf(intersectionBDistanceError)));
-                    }
-
-                    foreach(Intersection inter in intersections)
-                    {
-                        float distance = car.Direction == Direction.West ? (car.Position.X - inter.Position.X) : (car.Direction == Direction.East ? (inter.Position.X - car.Position.X) : (car.Direction == Direction.South ? (inter.Position.Y-car.Position.Y) : (car.Direction == Direction.North ? (car.Position.Y-inter.Position.Y) : 0)));
-
-                        
-                        if(distance < car.IntersectionBrakingDistance && (int)car.Direction % 2 != (int)inter.Direction && distance > 0 && Math.Abs(car.Position.X - inter.Position.X) <= car.IntersectionBrakingDistance && Math.Abs(car.Position.Y - inter.Position.Y) <= car.IntersectionBrakingDistance)
-                        {
-                            car.TargetSpeed = Math.Min(Math.Max(0f, car.TargetSpeed * (distance - 100) / car.IntersectionBrakingDistance),car.TargetSpeed);
-                        }
-                        else if ((int)car.Direction % 2 == (int)inter.Direction && distance <= car.IntersectionBrakingDistance && Math.Abs(car.Position.X - inter.Position.X) <= car.IntersectionBrakingDistance && Math.Abs(car.Position.Y - inter.Position.Y) <= car.IntersectionBrakingDistance)
-                        {
-                            car.TargetSpeed = Math.Min(Math.Max(car.MaxSpeed/5f, car.TargetSpeed * (distance - 100) / car.IntersectionBrakingDistance), car.TargetSpeed);//car.MaxSpeed;
-                        }
-                        else if(carFirst)
-                        {
-                            car.TargetSpeed = car.MaxSpeed;
-                        }
-                        //else if(efficientIntersections && distance <= car.IntersectionBrakingDistance)
-                        //{
-                        //    car.TargetSpeed = car.MaxSpeed;
-                        //}
-
-                        if (distance < 300 && distance > 300-car.Speed&& (int)car.Direction % 2 == (int)inter.Direction && Math.Abs(car.Position.X - inter.Position.X) <= 300 && Math.Abs(car.Position.Y - inter.Position.Y) <= 300)
-                        {
-                            //Make car move to random street
-                            bool turn = true;
-                            if(inter.Streets.Count == 0)
-                            {
-                                car.Acceleration = 0;
-                                car.Speed = 0;
-                                turn = false;
-                            }
-                            if (turn)
-                            {
-                                int selection = rand.Next(0, inter.Streets.Count);
-                                Street selected = inter.Streets[selection];
-                                if (inter.LastCarsToPass[selected] != null && selected.Cars.Contains(inter.LastCarsToPass[selected]))
-                                {
-                                    selected.Cars.AddBefore(selected.Cars.Find(inter.LastCarsToPass[selected]), car);
-                                    Car inAccident = car;
-                                    for (int i = 0; i < 3; i++)
-                                    {
-                                        inAccident = selected.Cars.Find(inAccident).Next?.Value;
-                                        if (inAccident == null)
-                                        { break; }
-                                        if (inAccident.Acceleration == 0f)
-                                        {
-                                            inter.Streets.Remove(inter.Streets[selection]);
-                                            break;
-                                        }
-                                    }
-                                }
-
-                                #region Teleportation Notes
-                                //Teleportation: WHY?!?!?!?!?
-                                //(Not sure) Cars only teleport when making U-turn or straight turn, don't always tp
-                                //Cars come out w/ same: NS - Y pos, EW - X pos as they went in with
-                                //Do cars come out of the same intersection, despite a weird street?
-                                //Is it just graphical?
-                                //When a car makes a turn, both streets involved go orange until you press R.
-                                //A random intersection and its streets can be turned orange w/ V.
-
-                                //Finally putting this to rest. The problem was that distance was only measured on one axis. This was intended, but it meant that a car could intersect every intersection at a particular y or x coordinate at one time. Fixed it! 10/28/2017
-                                #endregion
-
-                                else
-                                {
-                                    selected.Cars.AddLast(car);
-                                }
-                                inter.LastCarsToPass[selected] = car;
-                                street.Cars.Remove(car);
-
-                                car.Direction = selected.Direction;
-
-                                if ((int)selected.Direction % 2 == 0)
-                                {
-                                    car.Position = new Vector2(selected.Pos, car.Position.Y);
-                                }
-                                else
-                                {
-                                    car.Position = new Vector2(car.Position.X, selected.Pos);
-                                }
+                //}
+                //else if (keyboard.IsKeyDown(Keys.Space) && oldKeyboard.IsKeyUp(Keys.Space))
+                //{
+                //  foreach(Street s in streets)
+                //    {
+                //        s.Cars.AddFirst(new Car(Vector2.Zero, 0.01f, 0.2f, Direction.East, 30f, 30f, 400, 600));
+                //    }
+                //}
+                //if (mouse.LeftButton == ButtonState.Pressed && oldMouse.LeftButton == ButtonState.Released)
+                //{
+                //    streets[rand.Next(0, streets.Count)].Cars.AddFirst(new Car(Vector2.Zero, 0.01f, 0.2f, Direction.East, 30f, 30f, 800, 1300));
+                // //   streets[0].Cars.AddFirst(new Car(new Vector2(500,1000), 0.01f, 0.2f, Direction.East, 50f, 30f, 800));
+                //}
+                //if (mouse.RightButton == ButtonState.Pressed && oldMouse.RightButton == ButtonState.Released)
+                //{
+                // //   streets[1].Cars.AddFirst(new Car(new Vector2(15000,1500), 0.01f, 0.2f, Direction.West, 50f, 30f, 800, 1300));
+                //}
 
 
-
-                                car.Position += new Vector2(((int)car.Direction - 2) * -300, ((int)car.Direction - 1) * 300);
-                            }
-                        }
-
-                    }
-                    if((car.Position.X >= 5 * 2000 + 500 && car.Position.X <= 5 * 2000 + 900 )||( car.Position.Y >= 5 * 2000 + 500 && car.Position.Y <= 5 * 2000 + 900))
-                    {
-                        throughput++;
-                        car.Position = new Vector2(5 * 2000 + 1100, 5 * 2000 + 1100);
-                    }
-                        car.Update();
-                }
-            }
-
-           foreach(Intersection inter in intersections)
-            {
-                inter.Update(gameTime.ElapsedGameTime);
-            }
-
-            if (oldTotalGameTime != null && oldTotalGameTime.Seconds /30 != gameTime.TotalGameTime.Seconds / 30 && document != null)
-            {
-                XmlElement element = document.CreateElement("Entry");
-                element.AppendChild(document.CreateTextNode(DateTime.Now.ToString()));
-                XmlElement accelerationE = document.CreateElement("AccelerationVariationPositive");
-                accelerationE.AppendChild(document.CreateTextNode(accelerationError.ToString()));
-                XmlElement decelerationE = document.CreateElement("DecelerationVariationPositive");
-                decelerationE.AppendChild(document.CreateTextNode(decelerationError.ToString()));
-                XmlElement bDistE = document.CreateElement("BrakingDistanceVariationPositive");
-                bDistE.AppendChild(document.CreateTextNode(brakingDistanceError.ToString()));
-                XmlElement iBDistE = document.CreateElement("IntersectionBrakingDistanceVariationPositive");
-                iBDistE.AppendChild(document.CreateTextNode(intersectionBDistanceError.ToString()));
-                XmlElement iTMin = document.CreateElement("IntersectionTimeMin");
-                iTMin.AppendChild(document.CreateTextNode(intersectionTimeMin.ToString()));
-                XmlElement iTMax = document.CreateElement("IntersectionTimeMax");
-                iTMax.AppendChild(document.CreateTextNode(intersectionTimeMax.ToString()));
-                XmlElement time = document.CreateElement("MinutesPassed");
-                time.AppendChild(document.CreateTextNode(Math.Round(gameTime.TotalGameTime.TotalMinutes,2).ToString()));
-                XmlElement crashEl = document.CreateElement("Crashes");
-                crashEl.AppendChild(document.CreateTextNode(crashes.ToString()));
-                XmlElement throughPutEl = document.CreateElement("Throughput");
-                throughPutEl.AppendChild(document.CreateTextNode(throughput.ToString()));
-                element.AppendChild(time);
-                element.AppendChild(accelerationE);
-                element.AppendChild(decelerationE);
-                element.AppendChild(bDistE);
-                element.AppendChild(iBDistE);
-                element.AppendChild(iTMin);
-                element.AppendChild(iTMax);
-                element.AppendChild(crashEl);
-                element.AppendChild(throughPutEl);
-                root.AppendChild(element);
-                
-                document.Save("Data.xml");
-                trial.Add(element);
-
-                if ((trial.Count > 3 && trial[trial.Count-3].ChildNodes[8].InnerText == trial[trial.Count-2].ChildNodes[8].InnerText && trial[trial.Count - 3].ChildNodes[8].InnerText == trial[trial.Count - 1].ChildNodes[8].InnerText && trial[trial.Count - 3].ChildNodes[9].InnerText == trial[trial.Count - 2].ChildNodes[9].InnerText && trial[trial.Count - 3].ChildNodes[9].InnerText == trial[trial.Count - 1].ChildNodes[9].InnerText) || gameTime.TotalGameTime.TotalMinutes >= 20f)
+                if (keyboard.IsKeyDown(Keys.Escape))
                 {
                     Program.Restart();
                     Exit();
                 }
-            }
-            oldKeyboard = keyboard;
-            oldMouse = mouse;
-            oldTotalGameTime = gameTime.TotalGameTime;
-            base.Update(gameTime);
+
+                scalar = mouse.ScrollWheelValue * 0.0001f + 0.1f;
+
+                foreach (Street street in streets)
+                {
+                    LinkedList<Car> cars = new LinkedList<Car>(street.Cars);
+                    foreach (Car car in cars)
+                    {
+                        //Car follows lane
+                        car.Direction = street.Direction;
+
+                        if ((int)street.Direction % 2 == 0)
+                        {
+                            car.Position = new Vector2(street.Pos, car.Position.Y);
+                        }
+                        else
+                        {
+                            car.Position = new Vector2(car.Position.X, street.Pos);
+                        }
+
+                        bool carFirst = street.Cars.Find(car).Next == null;
+                        bool carLast = street.Cars.Find(car).Previous == null;
+
+                        bool carInSlowDownRange = false;
+
+                        //List<float> carSpeeds = new List<float>();
+
+                        //Brake if cars are ahead
+                        if (!carFirst)
+                        {
+                            float distance = (float)Math.Sqrt((car.Position.X - street.Cars.Find(car).Next.Value.Position.X) * (car.Position.X - street.Cars.Find(car).Next.Value.Position.X) + (car.Position.Y - street.Cars.Find(car).Next.Value.Position.Y) * (car.Position.Y - street.Cars.Find(car).Next.Value.Position.Y));
+                            if (distance < car.BrakingDistance)
+                            {
+                                car.TargetSpeed = Math.Max(0f, car.TargetSpeed * distance / car.BrakingDistance);
+                                carInSlowDownRange = true;
+                            }
+                            else
+                            {
+                                car.TargetSpeed = car.MaxSpeed;
+                                carInSlowDownRange = false;
+                            }
+
+                            if (distance < 150 && car.Acceleration != 0)
+                            { 
+                                crashes++;
+                            }
+                            if (distance < 150)
+                            {
+                                car.Acceleration = 0;
+                                car.Speed = 0;
+
+                                street.Cars.Find(car).Next.Value.Acceleration = 0;
+                                street.Cars.Find(car).Next.Value.Speed = 0;
+
+
+                            }
+                        }
+                        if (carLast && car.Position.X * ((int)car.Direction % 2) + car.Position.Y * (((int)car.Direction + 1) % 2) > 200)
+                        {
+                            street.Cars.AddFirst(new Car(Vector2.Zero, 0.01f + ErrorOf(accelerationError), 0.35f + ErrorOf(decelerationError), Direction.East, 77f / 9f, 30f, 600 + ErrorOf(brakingDistanceError), 600 + ErrorOf(intersectionBDistanceError)));
+                        }
+
+                        foreach (Intersection inter in intersections)
+                        {
+                            float distance = car.Direction == Direction.West ? (car.Position.X - inter.Position.X) : (car.Direction == Direction.East ? (inter.Position.X - car.Position.X) : (car.Direction == Direction.South ? (inter.Position.Y - car.Position.Y) : (car.Direction == Direction.North ? (car.Position.Y - inter.Position.Y) : 0)));
+
+
+                            if (distance < car.IntersectionBrakingDistance && (int)car.Direction % 2 != (int)inter.Direction && distance > 0 && Math.Abs(car.Position.X - inter.Position.X) <= car.IntersectionBrakingDistance && Math.Abs(car.Position.Y - inter.Position.Y) <= car.IntersectionBrakingDistance)
+                            {
+                                car.TargetSpeed = Math.Min(Math.Max(0f, car.TargetSpeed * (distance - 100) / car.IntersectionBrakingDistance), car.TargetSpeed);
+                            }
+                            else if ((int)car.Direction % 2 == (int)inter.Direction && distance <= car.IntersectionBrakingDistance && Math.Abs(car.Position.X - inter.Position.X) <= car.IntersectionBrakingDistance && Math.Abs(car.Position.Y - inter.Position.Y) <= car.IntersectionBrakingDistance)
+                            {
+                                car.TargetSpeed = Math.Min(Math.Max(car.MaxSpeed / 5f, car.TargetSpeed * (distance - 100) / car.IntersectionBrakingDistance), car.TargetSpeed);//car.MaxSpeed;
+                            }
+                            else if (carFirst)
+                            {
+                                car.TargetSpeed = car.MaxSpeed;
+                            }
+                            //else if(efficientIntersections && distance <= car.IntersectionBrakingDistance)
+                            //{
+                            //    car.TargetSpeed = car.MaxSpeed;
+                            //}
+
+                            if (distance < 300 && distance > 300 - car.Speed && (int)car.Direction % 2 == (int)inter.Direction && Math.Abs(car.Position.X - inter.Position.X) <= 300 && Math.Abs(car.Position.Y - inter.Position.Y) <= 300)
+                            {
+                                //Make car move to random street
+                                bool turn = true;
+                                if (inter.Streets.Count == 0)
+                                {
+                                    car.Acceleration = 0;
+                                    car.Speed = 0;
+                                    turn = false;
+                                }
+                                if (turn)
+                                {
+                                    int selection = rand.Next(0, inter.Streets.Count);
+                                    Street selected = inter.Streets[selection];
+                                    if (inter.LastCarsToPass[selected] != null && selected.Cars.Contains(inter.LastCarsToPass[selected]))
+                                    {
+                                        selected.Cars.AddBefore(selected.Cars.Find(inter.LastCarsToPass[selected]), car);
+                                        Car inAccident = car;
+                                        for (int i = 0; i < 3; i++)
+                                        {
+                                            inAccident = selected.Cars.Find(inAccident).Next?.Value;
+                                            if (inAccident == null)
+                                            { break; }
+                                            if (inAccident.Acceleration == 0f)
+                                            {
+                                                inter.Streets.Remove(inter.Streets[selection]);
+                                                break;
+                                            }
+                                        }
+                                    }
+
+                                    #region Teleportation Notes
+                                    //Teleportation: WHY?!?!?!?!?
+                                    //(Not sure) Cars only teleport when making U-turn or straight turn, don't always tp
+                                    //Cars come out w/ same: NS - Y pos, EW - X pos as they went in with
+                                    //Do cars come out of the same intersection, despite a weird street?
+                                    //Is it just graphical?
+                                    //When a car makes a turn, both streets involved go orange until you press R.
+                                    //A random intersection and its streets can be turned orange w/ V.
+
+                                    //Finally putting this to rest. The problem was that distance was only measured on one axis. This was intended, but it meant that a car could intersect every intersection at a particular y or x coordinate at one time. Fixed it! 10/28/2017
+                                    #endregion
+
+                                    else
+                                    {
+                                        selected.Cars.AddLast(car);
+                                    }
+                                    inter.LastCarsToPass[selected] = car;
+                                    street.Cars.Remove(car);
+
+                                    car.Direction = selected.Direction;
+
+                                    if ((int)selected.Direction % 2 == 0)
+                                    {
+                                        car.Position = new Vector2(selected.Pos, car.Position.Y);
+                                    }
+                                    else
+                                    {
+                                        car.Position = new Vector2(car.Position.X, selected.Pos);
+                                    }
+
+
+
+                                    car.Position += new Vector2(((int)car.Direction - 2) * -300, ((int)car.Direction - 1) * 300);
+                                }
+                            }
+
+                        }
+                        if ((car.Position.X >= 5 * 2000 + 500 && car.Position.X <= 5 * 2000 + 900) || (car.Position.Y >= 5 * 2000 + 500 && car.Position.Y <= 5 * 2000 + 900))
+                        {
+                            throughput++;
+                            street.Cars.Remove(car);
+                            //car.Position = new Vector2(5 * 2000 + 1100, 5 * 2000 + 1100);
+                        }
+                        car.Update();
+                    }
+                }
+
+                foreach (Intersection inter in intersections)
+                {
+                    inter.Update(gameTime.ElapsedGameTime);
+                }
+
+                if (oldTotalGameTime != null && oldTotalGameTime.Seconds / 30 != totalGameTimeAccelerated.Seconds / 30 && document != null)
+                {
+                    XmlElement element = document.CreateElement("Entry");
+                    element.AppendChild(document.CreateTextNode(DateTime.Now.ToString()));
+                    XmlElement accelerationE = document.CreateElement("AccelerationVariationPositive");
+                    accelerationE.AppendChild(document.CreateTextNode(accelerationError.ToString()));
+                    XmlElement decelerationE = document.CreateElement("DecelerationVariationPositive");
+                    decelerationE.AppendChild(document.CreateTextNode(decelerationError.ToString()));
+                    XmlElement bDistE = document.CreateElement("BrakingDistanceVariationPositive");
+                    bDistE.AppendChild(document.CreateTextNode(brakingDistanceError.ToString()));
+                    XmlElement iBDistE = document.CreateElement("IntersectionBrakingDistanceVariationPositive");
+                    iBDistE.AppendChild(document.CreateTextNode(intersectionBDistanceError.ToString()));
+                    XmlElement iTMin = document.CreateElement("IntersectionTimeMin");
+                    iTMin.AppendChild(document.CreateTextNode(intersectionTimeMin.ToString()));
+                    XmlElement iTMax = document.CreateElement("IntersectionTimeMax");
+                    iTMax.AppendChild(document.CreateTextNode(intersectionTimeMax.ToString()));
+                    XmlElement time = document.CreateElement("MinutesPassed");
+                    time.AppendChild(document.CreateTextNode(Math.Round(totalGameTimeAccelerated.TotalMinutes, 2).ToString()));
+                    XmlElement crashEl = document.CreateElement("Crashes");
+                    crashEl.AppendChild(document.CreateTextNode(crashes.ToString()));
+                    XmlElement throughPutEl = document.CreateElement("Throughput");
+                    throughPutEl.AppendChild(document.CreateTextNode(throughput.ToString()));
+                    element.AppendChild(time);
+                    element.AppendChild(accelerationE);
+                    element.AppendChild(decelerationE);
+                    element.AppendChild(bDistE);
+                    element.AppendChild(iBDistE);
+                    element.AppendChild(iTMin);
+                    element.AppendChild(iTMax);
+                    element.AppendChild(crashEl);
+                    element.AppendChild(throughPutEl);
+                    root.AppendChild(element);
+
+                    document.Save("Data.xml");
+                    trial.Add(element);
+
+                    if ((trial.Count > 3 && trial[trial.Count - 3].ChildNodes[8].InnerText == trial[trial.Count - 2].ChildNodes[8].InnerText && trial[trial.Count - 3].ChildNodes[8].InnerText == trial[trial.Count - 1].ChildNodes[8].InnerText && trial[trial.Count - 3].ChildNodes[9].InnerText == trial[trial.Count - 2].ChildNodes[9].InnerText && trial[trial.Count - 3].ChildNodes[9].InnerText == trial[trial.Count - 1].ChildNodes[9].InnerText) || totalGameTimeAccelerated.TotalMinutes >= 20f)
+                    {
+                        Program.Restart();
+                        Exit();
+                    }
+                }
+                oldKeyboard = keyboard;
+                oldMouse = mouse;
+                oldTotalGameTime = totalGameTimeAccelerated;
+                totalGameTimeAccelerated += gameTime.ElapsedGameTime;
+                base.Update(gameTime);
+            }            
         }
 
         float ErrorOf(float plusOrMinus)
@@ -476,7 +485,7 @@ namespace TrafficSim
                 spriteBatch.Draw(Pixel, new Rectangle((inter.Position.X * scalar).ToInt(), (inter.Position.Y*scalar).ToInt(), 5, 5), inter.Direction == IntersectionDirection.NorthSouth ? Color.Green : Color.Red);
             }
 
-            spriteBatch.DrawString(font,gameTime.TotalGameTime.ToString() + $"\nThroughput: {throughput}\nCrashes: {crashes}",Vector2.Zero,Color.Red);
+            spriteBatch.DrawString(font,totalGameTimeAccelerated.ToString() + $"\nThroughput: {throughput}\nCrashes: {crashes}",Vector2.Zero,Color.Red);
             
             spriteBatch.End();
             base.Draw(gameTime);
