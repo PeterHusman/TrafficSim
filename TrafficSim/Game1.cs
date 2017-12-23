@@ -30,6 +30,8 @@ namespace TrafficSim
 
         List<Car> cars = new List<Car>();
 
+        Texture2D santaHat;
+
         int crashes = 0;
 
         int throughput = 0;
@@ -47,6 +49,8 @@ namespace TrafficSim
         bool efficientIntersections = false;
 
         float scalar = 0.1f;
+
+        bool endAfterThisTrial = false;
 
         public static Texture2D Pixel;
 
@@ -66,7 +70,12 @@ namespace TrafficSim
         float intersectionBDistanceError = 0.00f;
         int intersectionTimeMin = 10;
         int intersectionTimeMax = 30;
-        
+
+        float accelerationBase = 0.01f;
+        float decelerationBase = 0.35f;
+        float brakingDistanceBase = 800f;
+        float intersectionBDistanceBase = 600f;
+
 
 
         public Game1()
@@ -100,25 +109,25 @@ namespace TrafficSim
             decelerationError = (float)rand.NextDouble() * 0.1f;
             brakingDistanceError = (float)rand.NextDouble() * 100f;
             intersectionBDistanceError = (float)rand.NextDouble() * 100f;
-            intersectionTimeMin = rand.Next(5,11);
-            intersectionTimeMax = rand.Next(15,46);
+            intersectionTimeMin = rand.Next(5, 11);
+            intersectionTimeMax = rand.Next(15, 46);
 
 
             document = new XmlDocument();
             //try
             //{
-                document.Load("Data.xml");
-                root = document.DocumentElement;
+            document.Load("Data.xml");
+            root = document.DocumentElement;
             //}
             //catch(Exception e)
             //{
             //    document = null;
             //    root = null;
             //}
-            
+
             IsMouseVisible = true;
 
-            
+            santaHat = Content.Load<Texture2D>("SantaHat");
 
             graphics.PreferredBackBufferHeight = 1080;
             graphics.PreferredBackBufferWidth = 1920;
@@ -154,9 +163,9 @@ namespace TrafficSim
                 horizStreets.Add(x1);
                 horizStreets.Add(x2);
             }
-            for(int x = 0; x < width *2; x += 2)
+            for (int x = 0; x < width * 2; x += 2)
             {
-                for(int y = 0; y < width*2; y += 2)
+                for (int y = 0; y < width * 2; y += 2)
                 {
                     intersections.Add(new Intersection(new TimeSpan(0, 0, rand.Next(intersectionTimeMin, intersectionTimeMax + 1)), new Vector2(vertStreets[y].Pos + 250, horizStreets[x].Pos + 250), IntersectionDirection.NorthSouth, new Street[] { horizStreets[x], horizStreets[x + 1], vertStreets[y], vertStreets[y + 1] }));
                 }
@@ -170,10 +179,10 @@ namespace TrafficSim
             {
                 //feet/pixels * pixels/update * updates/second * seconds/hour * miles/feet = miles/hour
                 //15/150 * speed (pixels/update) * 60 * 3600 * 1/5280 = speed (mi/hour)
-                
-                s.Cars.AddFirst(new Car(Vector2.Zero, 0.01f, 0.2f, Direction.East, 77f/9f, 30f, 400, 600));
+
+                s.Cars.AddFirst(new Car(Vector2.Zero, 0.01f, 0.2f, Direction.East, 77f / 9f, 30f, 400, 600));
             }
-            
+
             font = Content.Load<SpriteFont>("font");
             // TODO: use this.Content to load your game content here
         }
@@ -194,6 +203,7 @@ namespace TrafficSim
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Update(GameTime gameTime)
         {
+
             for (int c = 0; c < timeAccelerationFactor; c++)
             {
                 mouse = Mouse.GetState();
@@ -222,8 +232,7 @@ namespace TrafficSim
 
                 if (keyboard.IsKeyDown(Keys.Escape))
                 {
-                    Program.Restart();
-                    Exit();
+                    endAfterThisTrial = true;
                 }
 
                 scalar = mouse.ScrollWheelValue * 0.0001f + 0.1f;
@@ -268,7 +277,7 @@ namespace TrafficSim
                             }
 
                             if (distance < 150 && car.Acceleration != 0)
-                            { 
+                            {
                                 crashes++;
                             }
                             if (distance < 150)
@@ -284,7 +293,7 @@ namespace TrafficSim
                         }
                         if (carLast && car.Position.X * ((int)car.Direction % 2) + car.Position.Y * (((int)car.Direction + 1) % 2) > 200)
                         {
-                            street.Cars.AddFirst(new Car(Vector2.Zero, 0.01f + ErrorOf(accelerationError), 0.35f + ErrorOf(decelerationError), Direction.East, 77f / 9f, 30f, 600 + ErrorOf(brakingDistanceError), 600 + ErrorOf(intersectionBDistanceError)));
+                            street.Cars.AddFirst(new Car(Vector2.Zero, accelerationBase + ErrorOf(accelerationError), decelerationBase + ErrorOf(decelerationError), Direction.East, 77f / 9f, 30f, brakingDistanceBase + ErrorOf(brakingDistanceError), intersectionBDistanceBase + ErrorOf(intersectionBDistanceError)));
                         }
 
                         foreach (Intersection inter in intersections)
@@ -397,13 +406,13 @@ namespace TrafficSim
                     XmlElement element = document.CreateElement("Entry");
                     element.AppendChild(document.CreateTextNode(DateTime.Now.ToString()));
                     XmlElement accelerationE = document.CreateElement("AccelerationVariationPositive");
-                    accelerationE.AppendChild(document.CreateTextNode(accelerationError.ToString()));
+                    accelerationE.AppendChild(document.CreateTextNode($"{accelerationBase.ToString()} +- {accelerationError.ToString()}"));
                     XmlElement decelerationE = document.CreateElement("DecelerationVariationPositive");
-                    decelerationE.AppendChild(document.CreateTextNode(decelerationError.ToString()));
+                    decelerationE.AppendChild(document.CreateTextNode($"{decelerationBase.ToString()} +- {decelerationError.ToString()}"));
                     XmlElement bDistE = document.CreateElement("BrakingDistanceVariationPositive");
-                    bDistE.AppendChild(document.CreateTextNode(brakingDistanceError.ToString()));
+                    bDistE.AppendChild(document.CreateTextNode($"{brakingDistanceBase.ToString()} +- {brakingDistanceError.ToString()}"));
                     XmlElement iBDistE = document.CreateElement("IntersectionBrakingDistanceVariationPositive");
-                    iBDistE.AppendChild(document.CreateTextNode(intersectionBDistanceError.ToString()));
+                    iBDistE.AppendChild(document.CreateTextNode($"{intersectionBDistanceBase.ToString()} +- {intersectionBDistanceError.ToString()}"));
                     XmlElement iTMin = document.CreateElement("IntersectionTimeMin");
                     iTMin.AppendChild(document.CreateTextNode(intersectionTimeMin.ToString()));
                     XmlElement iTMax = document.CreateElement("IntersectionTimeMax");
@@ -430,7 +439,10 @@ namespace TrafficSim
 
                     if ((trial.Count > 3 && trial[trial.Count - 3].ChildNodes[8].InnerText == trial[trial.Count - 2].ChildNodes[8].InnerText && trial[trial.Count - 3].ChildNodes[8].InnerText == trial[trial.Count - 1].ChildNodes[8].InnerText && trial[trial.Count - 3].ChildNodes[9].InnerText == trial[trial.Count - 2].ChildNodes[9].InnerText && trial[trial.Count - 3].ChildNodes[9].InnerText == trial[trial.Count - 1].ChildNodes[9].InnerText) || totalGameTimeAccelerated.TotalMinutes >= 20f)
                     {
-                        Program.Restart();
+                        if (!endAfterThisTrial)
+                        {
+                            Program.Restart();
+                        }
                         Exit();
                     }
                 }
@@ -439,12 +451,12 @@ namespace TrafficSim
                 oldTotalGameTime = totalGameTimeAccelerated;
                 totalGameTimeAccelerated += gameTime.ElapsedGameTime;
                 base.Update(gameTime);
-            }            
+            }
         }
 
         float ErrorOf(float plusOrMinus)
         {
-            float output = (float)rand.NextDouble() * plusOrMinus * rand.Next(-1,2);
+            float output = (float)rand.NextDouble() * plusOrMinus * rand.Next(-1, 2);
             return output;
         }
 
@@ -464,29 +476,33 @@ namespace TrafficSim
 
             spriteBatch.Begin();
 
-            foreach(Street street in streets)
+            foreach (Street street in streets)
             {
                 Color c = street.Pos % 10 == 0 ? Color.Black : Color.Orange;
-                spriteBatch.Draw(Pixel, new Rectangle((((int)street.Direction + 1) % 2) * (int)(street.Pos * scalar), (((int)street.Direction) % 2) * (int)(street.Pos*scalar), (int)(((((int)street.Direction) % 2)*1000000 + 50)*scalar), (int)(((((int)street.Direction + 1) % 2) * 1000000 + 50) * scalar)), c);
+                spriteBatch.Draw(Pixel, new Rectangle((((int)street.Direction + 1) % 2) * (int)(street.Pos * scalar), (((int)street.Direction) % 2) * (int)(street.Pos * scalar), (int)(((((int)street.Direction) % 2) * 1000000 + 50) * scalar), (int)(((((int)street.Direction + 1) % 2) * 1000000 + 50) * scalar)), c);
             }
 
             foreach (Street street in streets)
             {
-                
+
                 foreach (Car car in street.Cars)
                 {
                     Color color = car.Acceleration > 0 ? Color.White : Color.Red;
                     spriteBatch.Draw(Pixel, new Rectangle((int)(car.Position.X * scalar), (int)(car.Position.Y * scalar), (int)((((int)car.Direction % 2 + 1)) * 50 * scalar), (int)(((((int)car.Direction + 1) % 2 + 1)) * 50 * scalar)), color);
+                    if (DateTime.Today.Day >= 23 && DateTime.Today.Day <= 25 && DateTime.Today.Month == 12)
+                    {
+                        spriteBatch.Draw(santaHat, new Rectangle((int)(car.Position.X * scalar), (int)((car.Position.Y - 150) * scalar), (int)(santaHat.Width * 0.5f * scalar), (int)(santaHat.Height * 0.5f * scalar)), Color.White);
+                    }
                 }
             }
 
-            foreach(Intersection inter in intersections)
+            foreach (Intersection inter in intersections)
             {
-                spriteBatch.Draw(Pixel, new Rectangle((inter.Position.X * scalar).ToInt(), (inter.Position.Y*scalar).ToInt(), 5, 5), inter.Direction == IntersectionDirection.NorthSouth ? Color.Green : Color.Red);
+                spriteBatch.Draw(Pixel, new Rectangle((inter.Position.X * scalar).ToInt(), (inter.Position.Y * scalar).ToInt(), 5, 5), inter.Direction == IntersectionDirection.NorthSouth ? Color.Green : Color.Red);
             }
 
-            spriteBatch.DrawString(font,totalGameTimeAccelerated.ToString() + $"\nThroughput: {throughput}\nCrashes: {crashes}",Vector2.Zero,Color.Red);
-            
+            spriteBatch.DrawString(font, totalGameTimeAccelerated.ToString() + $"\nThroughput: {throughput}\nCrashes: {crashes}", Vector2.Zero, Color.Red);
+
             spriteBatch.End();
             base.Draw(gameTime);
         }

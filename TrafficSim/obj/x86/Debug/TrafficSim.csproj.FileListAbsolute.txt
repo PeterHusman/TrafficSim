@@ -24,3 +24,4 @@ C:\Users\Peter Husman\Documents\GitHub\TrafficSim\TrafficSim\obj\x86\Debug\Traff
 C:\Users\Peter Husman\Documents\GitHub\TrafficSim\TrafficSim\obj\x86\Debug\TrafficSim.pdb
 C:\Users\Peter Husman\Documents\GitHub\TrafficSim\TrafficSim\bin\Windows\x86\Debug\Content\font.xnb
 C:\Users\Peter Husman\Documents\GitHub\TrafficSim\TrafficSim\bin\Windows\x86\Debug\Content\Data.xnb
+C:\Users\Peter Husman\Documents\GitHub\TrafficSim\TrafficSim\bin\Windows\x86\Debug\Content\SantaHat.xnb
